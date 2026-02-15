@@ -44,12 +44,8 @@ pub fn repl() {
             println!(
                 "This program is distributed in the hope that it will be useful,\nbut WITHOUT ANY WARRANTY; without even the implied warranty of\nMERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\nGNU General Public License for more details."
             );
-        }
-        match inp {
-            String::from("exit" | "quit") => {
-                break;
-            }
-            String::from("show c") => {}
+        } else if inp == "show c" {
+            println!("IN PROGRESS");
         }
         let inpe: Vec<char> = inp.chars().collect();
         state.2 = 0;
