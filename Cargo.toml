@@ -7,6 +7,7 @@ description = "A brainfuck compiler & interpreter"
 keywords = ["compiler", "interpreter", "CLI", "WIP"]
 publish = false
 license = "GPL-3.0-or-later"
+readme = "README.md"
 
 [dependencies]
 bitcode = { version = "0.5", features = ["derive"] }
