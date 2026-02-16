@@ -19,10 +19,11 @@ along with brainfuck-rs.  If not, see <https://www.gnu.org/licenses/>.
 see ../../COPYING for the full license
 */
 use crate::pre_proccesser::SourceProgram;
+use console::{Key, Term};
 use std::io::{Read, Write};
 pub fn repl() {
     println!(
-        "brainfuck-rs  Copyright (C) 2026  Mun_Hammer\nThis program comes with ABSOLUTELY NO WARRANTY; for details type `show w'.\nThis is free software, and you are welcome to redistribute it\nunder certain conditions; type `show c' for details."
+        "brainfuck-rs  Copyright (C) 2026  Mun_Hammer\nThis program comes with ABSOLUTELY NO WARRANTY; for details type `show w'.\nThis is free software, and you are welcome to redistribute it\nunder certain conditions; type `show c' for details.\nEnter \"Reset\" or \"Clear\" to reset the program's state"
     );
     //              tape          ptr    pos    loop stack
     let mut state: ([u8; 30_000], usize, usize, Vec<usize>) = ([0; 30_000], 0, 0, Vec::new());
@@ -35,8 +36,14 @@ pub fn repl() {
         } else {
             print!("... ");
         }
-        std::io::stdout().flush().unwrap();
-        std::io::stdin().read_line(&mut inp).unwrap();
+        match std::io::stdout().flush() {
+            Ok(()) => (),
+            Err(err) => eprintln!("{err}"),
+        }
+        match std::io::stdin().read_line(&mut inp) {
+            Ok(()) => (),
+            Err(err) => eprintln!("{err}"),
+        }
         inp = String::from(inp.trim_end());
         if inp == "exit" || inp == "quit" {
             break;
@@ -46,6 +53,9 @@ pub fn repl() {
             );
         } else if inp == "show c" {
             println!("IN PROGRESS");
+        } else if inp == "clear" || inp == "reset" {
+            state = ([0; 30_000], 0, 0, Vec::new());
+            println!("Tape, pointer & loop stacks have all been reset");
         }
         let inpe: Vec<char> = inp.chars().collect();
         state.2 = 0;
@@ -77,9 +87,47 @@ pub fn repl() {
                 '.' => {
                     out = true;
                     print!("{}", state.0[state.1] as char);
+                    std::io::stdout().flush().unwrap();
                 }
                 ',' => {
                     let mut buf: [u8; 1] = [0];
+                    state.0[state.1] = {
+                        let mut out: Option<char> = None;
+                        loop {
+                            let mut done = false;
+                            match Term::stdout().read_key().unwrap() {
+                                Key::Char(c) => {
+                                    out = Some(c);
+                                }
+                                Key::Enter => {
+                                    done = true;
+                                }
+                                Key::Backspace => {
+                                    print!("\x7f");
+                                    out = None;
+                                }
+                                _ => (),
+                            }
+                            if let Some(val) = out {
+                                print!("\x7f{}", val);
+                            }
+                            match std::io::stdout().flush() {
+                                Ok(()) => (),
+                                Err(err) => eprintln!("{err}"),
+                            }
+                            if done && out.is_some() {
+                                break;
+                            }
+                        }
+                        match out {
+                            Some(val) => val,
+                            None => {
+                                unreachable!();
+                            }
+                        }
+                        .encode_utf8(&mut buf);
+                        buf[0]
+                    };
                     match std::io::stdin().read_exact(&mut buf) {
                         Ok(()) => (),
                         Err(err) => {
