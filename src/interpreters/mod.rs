@@ -18,12 +18,26 @@ You should have received a copy of the GNU General Public License
 along with brainfuck-rs.  If not, see <https://www.gnu.org/licenses/>.
 see ../../COPYING for the full license
 */
-use crate::pre_proccesser::SourceProgram;
+#![cfg(feature = "interpret")]
+/*!
+The interpreters & things for bf (can run all of the steps except llvm & machine code)
+*/
+pub mod objects;
+pub mod raw;
+
+pub use objects::{Jump, State};
+
 use console::{Key, Term};
-use std::io::{Read, Write};
-pub fn repl() {
+use std::io::{Read, Write, stdout};
+
+/// A REPL that doesn't panic when there is an error
+/// # Errors
+/// If there is an IO error
+///
+#[cfg(feature = "repl")]
+pub fn repl() -> crate::Result<()> {
     println!(
-        "brainfuck-rs  Copyright (C) 2026  Mun_Hammer\nThis program comes with ABSOLUTELY NO WARRANTY; for details type `show w'.\nThis is free software, and you are welcome to redistribute it\nunder certain conditions; type `show c' for details.\nEnter \"Reset\" or \"Clear\" to reset the program's state"
+        "brainfuck-rs  Copyright (C) 2026  Mun_Hammer\nThis program comes with ABSOLUTELY NO WARRANTY; for details type `show w'.\nThis is free software, and you are welcome to redistribute it\nunder certain conditions; type `show c' for details.\nEnter \"Help\" for help"
     );
     //              tape          ptr    pos    loop stack
     let mut state: ([u8; 30_000], usize, usize, Vec<usize>) = ([0; 30_000], 0, 0, Vec::new());
@@ -172,153 +186,5 @@ pub fn repl() {
             println!();
         }
     }
-}
-struct ProgramState {
-    tape: [u8; 30_000],
-    ptr: usize,
-    pos: usize,
-    loop_num: usize,
-    jumps: Vec<(usize, usize)>,
-}
-impl ProgramState {
-    /// Using an object that can be turned into a string, makes a [`ProgramState`] with a jump table
-    pub fn from_string<S: Into<String>>(program: S) -> Self {
-        Self {
-            loop_num: 0,
-            tape: [0; 30_000],
-            pos: 0,
-            ptr: 0,
-            jumps: {
-                let mut jump_table: Vec<(usize, usize)> = Vec::new();
-                let mut depth: usize = 0;
-                for (num, op) in program.into().chars().enumerate() {
-                    match op {
-                        '[' => {
-                            depth += 1;
-                            jump_table.push((num, 0));
-                        }
-                        ']' => {
-                            depth -= 1;
-                            let length = jump_table.len() - depth - 1;
-                            jump_table[length].1 = num;
-                        }
-                        _ => (),
-                    }
-                }
-                jump_table
-            },
-        }
-    }
-    /// Adds to the current cell
-    pub fn add(&mut self, amount: u8) -> &mut Self {
-        self.tape[self.ptr] = self.tape[self.ptr].wrapping_add(amount);
-        self
-    }
-    /// Subtracts from the current cell
-    pub fn sub(&mut self, amount: u8) -> &mut Self {
-        self.tape[self.ptr] = self.tape[self.ptr].wrapping_sub(amount);
-        self
-    }
-    /// Moves the pointer right
-    pub fn mvr(&mut self, amount: usize) -> Result<&mut Self, String> {
-        if self.ptr + amount == 30_000 {
-            return Err(String::from("Cannot move past tape bounds of 30_000 cells"));
-        }
-        self.ptr += amount;
-        Ok(self)
-    }
-    /// Moves the pointer left
-    pub fn mvl(&mut self, amount: usize) -> Result<&mut Self, String> {
-        if self.ptr.saturating_sub(amount) == 0 {
-            return Err(String::from("Cannot move to negative tape addresses"));
-        }
-        self.ptr -= amount;
-        Ok(self)
-    }
-    /// Starts a loop
-    pub fn srt(&mut self, times: usize) -> &mut Self {
-        for _ in 0..times {
-            if self.tape[self.ptr] == 0 {
-                self.pos = self.jumps[self.loop_num].1;
-            }
-            self.loop_num += 1;
-        }
-        self
-    }
-    /// Ends a loop
-    pub fn end(&mut self, times: usize) -> &mut Self {
-        for _ in 0..times {
-            if self.tape[self.ptr] != 0 {
-                self.pos = self.jumps[self.loop_num].0 - 1;
-            }
-            self.loop_num -= 1;
-        }
-        self
-    }
-    /// Outputs the ascii value of the current cell
-    pub fn out(&self, times: usize, capture: bool) -> (&Self, Option<String>) {
-        let mut out = String::new();
-        for _ in 0..times {
-            if capture {
-                out.push(self.tape[self.ptr] as char);
-            } else {
-                print!("{}", self.tape[self.ptr] as char);
-            }
-        }
-        if capture {
-            return (self, Some(out));
-        }
-        (self, None)
-    }
-    /// Takes input
-    pub fn inp(&mut self) -> Result<&mut Self, String> {
-        let mut buf: [u8; 1] = [0];
-        match std::io::stdin().read_exact(&mut buf) {
-            Ok(()) => (),
-            Err(err) => {
-                return Err(err.to_string());
-            }
-        }
-        self.tape[self.ptr] = buf[0];
-        Ok(self)
-    }
-}
-impl SourceProgram {
-    pub fn interpret(&self) -> Result<(), String> {
-        let mut state = ProgramState::from_string(self.0.clone());
-        let chars: Vec<char> = self.0.chars().collect();
-        let mut c: char;
-        while state.pos < chars.len() - 1 {
-            c = chars[state.pos];
-            match c {
-                '+' => {
-                    state.add(1);
-                }
-                '-' => {
-                    state.sub(1);
-                }
-                '<' => {
-                    state.mvl(1)?;
-                }
-                '>' => {
-                    state.mvr(1)?;
-                }
-                '[' => {
-                    state.srt(1);
-                }
-                ']' => {
-                    state.end(1);
-                }
-                '.' => {
-                    state.out(1, false);
-                }
-                ',' => {
-                    state.inp()?;
-                }
-                _ => (),
-            }
-            state.pos += 1;
-        }
-        Ok(())
-    }
+    crate::Result::Ok(())
 }
