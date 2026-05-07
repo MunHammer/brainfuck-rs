@@ -18,6 +18,7 @@ You should have received a copy of the GNU General Public License
 along with brainfuck-rs.  If not, see <https://www.gnu.org/licenses/>.
 see COPYING for the full license
 */
+//! This file is for the lexical analysis of a program
 use crate::compiler::front::{BaseOp, SourceProgram, TokenStream};
 impl SourceProgram {
     /// Turns the source program into a stream of tokens & removes standard starting comments

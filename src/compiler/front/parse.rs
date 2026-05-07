@@ -18,6 +18,7 @@ You should have received a copy of the GNU General Public License
 along with brainfuck-rs.  If not, see <https://www.gnu.org/licenses/>.
 see COPYING for the full license
 */
+//! This file is for the parsing of token streams
 use crate::compiler::front::{BaseOp, Block, Node, TokenStream};
 impl TokenStream {
     /// Parses the stream of tokens & turns it into an AST

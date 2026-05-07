@@ -18,6 +18,7 @@ You should have received a copy of the GNU General Public License
 along with brainfuck-rs.  If not, see <https://www.gnu.org/licenses/>.
 see COPYING for the full license
 */
+//! The errors for this crate
 #[cfg(feature = "repl")]
 use rustyline::error::ReadlineError;
 use std::fmt;

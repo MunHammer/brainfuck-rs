@@ -19,9 +19,8 @@ along with brainfuck-rs.  If not, see <https://www.gnu.org/licenses/>.
 see COPYING for the full license
 */
 #![cfg(feature = "interpret")]
-/*!
-The interpreters & things for bf (can run all of the steps except llvm & machine code)
-*/
+//! The interpreters & things for bf (can run all of the steps except llvm & machine code)
+
 pub mod objects;
 pub mod raw;
 
@@ -33,7 +32,6 @@ use std::io::{Read, Write, stdout};
 /// A REPL that doesn't panic when there is an error
 /// # Errors
 /// If there is an IO error
-///
 #[cfg(feature = "repl")]
 pub fn repl() -> crate::Result<()> {
     println!(

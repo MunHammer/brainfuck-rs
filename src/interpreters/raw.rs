@@ -18,6 +18,7 @@ You should have received a copy of the GNU General Public License
 along with brainfuck-rs.  If not, see <https://www.gnu.org/licenses/>.
 see COPYING for the full license
 */
+//! The file for the function that interprets the program from source
 use super::objects::State;
 use crate::compiler::SourceProgram;
 impl SourceProgram {

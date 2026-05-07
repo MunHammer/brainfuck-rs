@@ -18,6 +18,7 @@ You should have received a copy of the GNU General Public License
 along with brainfuck-rs.  If not, see <https://www.gnu.org/licenses/>.
 see COPYING for the full license
 */
+//! This file is to declare the structs & enums & impl some basic fuctions
 use console::{Key, Term};
 use std::io::{Write, stdout};
 /// An enum to decide if you use a jump table or a jump stack

@@ -19,6 +19,7 @@ along with brainfuck-rs.  If not, see <https://www.gnu.org/licenses/>.
 see COPYING for the full license
 */
 #![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/README.md"))]
+/// The module in which all of the command line interface logic is stored
 #[cfg(feature = "cli")]
 mod cli {
     use brainfuck_rs::compiler;
