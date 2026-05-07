@@ -16,7 +16,7 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with brainfuck-rs.  If not, see <https://www.gnu.org/licenses/>.
-see ../../COPYING for the full license
+see COPYING for the full license
 */
 //! This module defines all of the objects that are used for the front end of the compiler
 //! *also for the extra functions such as `::new` that just make life easier*

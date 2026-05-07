@@ -2,7 +2,7 @@
 brainfuck-rs: A brainfuck CLI interpreter & compiler
 Copyright (C) 2026  Mun_Hammer
 
-This file is a part of brainfuck-rs
+This file is part of brainfuck-rs
 
 brainfuck-rs is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with brainfuck-rs.  If not, see <https://www.gnu.org/licenses/>.
-see ../COPYING for the full license
+see COPYING for the full license
 */
 #![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/README.md"))]
 
