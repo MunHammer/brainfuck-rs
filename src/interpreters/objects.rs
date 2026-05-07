@@ -31,10 +31,16 @@ pub enum Jump {
 
 /// A state of a given program
 pub struct State {
+    /// The program's tape, in which all of the cells are stored
     pub tape: [u8; 30_000],
+    /// The pointer to the tape's cell, with which most cell manipulation commmands will be executed on
     pub ptr: usize,
+    /// The position in the program that the interpreter is at
     pub pos: usize,
+    // TODO: put this in the `Jump` enum
+    /// The depth at which the jump stack is at
     pub loop_num: usize,
+    /// The stack or table of jumps
     pub jumps: Jump,
 }
 impl Jump {
