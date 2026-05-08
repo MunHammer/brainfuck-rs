@@ -22,7 +22,7 @@ see COPYING for the full license
 //! *also for the extra functions such as `::new` that just make life easier*
 use bitcode::{Decode, Encode};
 /// The base operation set, used in [`TokenStream`]
-#[derive(Clone, Encode, Decode)]
+#[derive(Debug, Clone, Encode, Decode, PartialEq)]
 pub enum BaseOp {
     /// The bf Add (**ADD** to current cell), equivalent to `+`
     Add,
@@ -75,7 +75,7 @@ pub struct Block(pub Vec<Node>);
 #[derive(Encode, Decode, Default)]
 pub struct SourceProgram(pub String);
 /// A stream of tokens, uses [`BaseOp`]
-#[derive(Encode, Decode)]
+#[derive(Debug, Encode, Decode, PartialEq)]
 pub struct TokenStream(pub Vec<BaseOp>);
 
 // The functions & stuff go here

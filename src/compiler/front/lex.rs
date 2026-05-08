@@ -85,3 +85,18 @@ impl SourceProgram {
         Ok(TokenStream(tokens))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    fn test(program: &str, expected: Vec<BaseOp>) {
+        let lexed = SourceProgram::new(String::from(program))
+            .lex()
+            .expect(&format!("Failed to lex string \"{program}\""));
+        let manual = TokenStream::new(expected);
+        assert_eq!(
+            lexed, manual,
+            "Lexed string {program} doesn't match expected output\nLexed output: {lexed:#?}\nExpected output: {manual:#?}"
+        );
+    }
+}
