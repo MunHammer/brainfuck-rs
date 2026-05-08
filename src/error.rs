@@ -33,10 +33,13 @@ pub enum Error {
     /// When the pointer moves to a negative memory address that doesn't exist
     /// Example:
     /// ```rust
-    /// use brainfuck-rs::interpreters
-    /// fn main() {
-    ///     let state = interpreters::ProgramState::from_string("[-]+[>[-]+]");
-    ///     let error = compiler::SourceProgram::
+    /// use brainfuck_rs::compiler;
+    /// let error = compiler::SourceProgram::new(String::from("[-]+[>[-]+]")).interpret();
+    /// // Just `"<"` would be easier, but this is fancier & better
+    /// let manual_error: Result<(), _> = Err(brainfuck_rs::Error::Stop);
+    /// match error {
+    ///     Err(manual_error) => println!("Same error"),
+    ///     _ => panic!("Not the same error"),
     /// }
     /// ```
     NegativeAddress((usize, usize)),

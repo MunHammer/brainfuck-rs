@@ -99,4 +99,40 @@ mod tests {
             "Lexed string {program} doesn't match expected output\nLexed output: {lexed:#?}\nExpected output: {manual:#?}"
         );
     }
+
+    #[test]
+    fn add() {
+        test("+++", vec![BaseOp::Add; 3]);
+    }
+    #[test]
+    fn sub() {
+        test("---", vec![BaseOp::Sub; 3]);
+    }
+    #[test]
+    fn mvl() {
+        test("<<<", vec![BaseOp::Mvl; 3]);
+    }
+    #[test]
+    fn mvr() {
+        test(">>>", vec![BaseOp::Mvr; 3]);
+    }
+    #[test]
+    fn out() {
+        test("...", vec![BaseOp::Out; 3]);
+    }
+    #[test]
+    fn inp() {
+        test(",,,", vec![BaseOp::Inp; 3]);
+    }
+    #[test]
+    fn lop() {
+        test(
+            "[[]]",
+            vec![BaseOp::Srt, BaseOp::Srt, BaseOp::End, BaseOp::End],
+        );
+    }
+    #[test]
+    fn mixed() {
+        test(",.,", vec![BaseOp::Inp, BaseOp::Out, BaseOp::Inp]);
+    }
 }
