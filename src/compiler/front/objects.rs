@@ -46,7 +46,7 @@ pub enum BaseOp {
     NewLine,
 }
 /// The node for ASTs, used in [`Block`]
-#[derive(Debug, Encode, Decode)]
+#[derive(Debug, Encode, Decode, PartialEq, Clone)]
 pub enum Node {
     /// The bf Add (**ADD** to current cell), equivalent to `+`
     Add,
@@ -68,7 +68,7 @@ pub enum Node {
     NewLine,
 }
 /// A group of nodes for ASTs, uses the [`Node`]
-#[derive(Debug, Encode, Decode, Default)]
+#[derive(Debug, Encode, Decode, Default, PartialEq, Clone)]
 #[bitcode(recursive)]
 pub struct Block(pub Vec<Node>);
 /// A wrapper for a program

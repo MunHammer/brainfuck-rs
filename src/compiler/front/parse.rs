@@ -51,3 +51,72 @@ impl TokenStream {
         (program, times_drained)
     }
 }
+#[cfg(test)]
+mod tests {
+    use super::{Block, Node};
+    fn test(program: &str, expected: Block) {
+        let parsed = crate::compiler::SourceProgram::new(String::from(program))
+            .lex()
+            .parse()
+            .0;
+        assert_eq!(
+            parsed, expected,
+            "Parsed string {program} doesn't match expected output\nParsed output: {parsed:#?}\nExpected output: {expected:#?}"
+        );
+    }
+    #[test]
+    fn add() {
+        test("+++", Block(vec![Node::Add; 3]));
+    }
+    #[test]
+    fn sub() {
+        test("---", Block(vec![Node::Sub; 3]));
+    }
+    #[test]
+    fn mvr() {
+        test(">>>", Block(vec![Node::Mvr; 3]));
+    }
+    #[test]
+    fn mvl() {
+        test("<<<", Block(vec![Node::Mvl; 3]));
+    }
+    #[test]
+    fn out() {
+        test("...", Block(vec![Node::Out; 3]));
+    }
+    #[test]
+    fn inp() {
+        test(",,,", Block(vec![Node::Inp; 3]));
+    }
+    #[test]
+    fn lop() {
+        test("[...]", Block(vec![Node::Lop(Block(vec![Node::Out; 3]))]));
+    }
+    #[test]
+    fn mixed() {
+        test(
+            ",+++++[>+++++<-]>.",
+            Block(vec![
+                Node::Inp,
+                Node::Add,
+                Node::Add,
+                Node::Add,
+                Node::Add,
+                Node::Add,
+                Node::Lop(Block(vec![
+                    Node::Mvr,
+                    Node::Add,
+                    Node::Add,
+                    Node::Add,
+                    Node::Add,
+                    Node::Add,
+                    Node::Mvl,
+                    Node::Sub,
+                ])),
+                Node::Mvr,
+                Node::Out,
+            ]),
+        );
+        test(",.,", Block(vec![Node::Inp, Node::Out, Node::Inp]));
+    }
+}

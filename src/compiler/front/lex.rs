@@ -127,14 +127,38 @@ mod tests {
         test(",,,", vec![BaseOp::Inp; 3]);
     }
     #[test]
-    fn lop() {
-        test(
-            "[[]]",
-            vec![BaseOp::Srt, BaseOp::Srt, BaseOp::End, BaseOp::End],
-        );
+    fn srt() {
+        test("[[[", vec![BaseOp::Srt; 3]);
+    }
+    #[test]
+    fn end() {
+        test("]]]", vec![BaseOp::End; 3]);
     }
     #[test]
     fn mixed() {
+        test(
+            ",+++++[>+++++<-]>.",
+            vec![
+                BaseOp::Inp,
+                BaseOp::Add,
+                BaseOp::Add,
+                BaseOp::Add,
+                BaseOp::Add,
+                BaseOp::Add,
+                BaseOp::Srt,
+                BaseOp::Mvr,
+                BaseOp::Add,
+                BaseOp::Add,
+                BaseOp::Add,
+                BaseOp::Add,
+                BaseOp::Add,
+                BaseOp::Mvl,
+                BaseOp::Sub,
+                BaseOp::End,
+                BaseOp::Mvr,
+                BaseOp::Out,
+            ],
+        );
         test(",.,", vec![BaseOp::Inp, BaseOp::Out, BaseOp::Inp]);
     }
 }
