@@ -21,10 +21,9 @@ see COPYING for the full license
 //! This file is for the lexical analysis of a program
 use crate::compiler::front::{BaseOp, SourceProgram, TokenStream};
 impl SourceProgram {
-    /// Turns the source program into a stream of tokens & removes standard starting comments
-    /// # Errors
-    /// If there is an unmatched `[` or `]`
-    pub fn lex(&self) -> crate::Result<TokenStream> {
+    /// Turns the source program into a stream of tokens
+    /// Also ignores all other lines
+    pub fn lex(&self) -> TokenStream {
         let mut tokens: Vec<BaseOp> = Vec::new();
         // Tokenises valid chars
         for c in self.0.chars() {
@@ -41,12 +40,17 @@ impl SourceProgram {
                 _ => BaseOp::CharCount,
             });
         }
+        TokenStream(tokens)
+    }
+    /// Removes all starting comments from a TokenStream
+    fn rm_comments(tokens: TokenStream) -> crate::Result<TokenStream> {
         // Removes comments like:
         /*
         [This is a brainfuck comment, you can put any char in here
         but the [] (loops) have to be matched like normal.]
         +++++
         */
+        let mut tokens = tokens.0;
         let mut pos: (usize, usize) = (0, 0);
         let mut last_start: (usize, usize) = (0, 0);
         while let BaseOp::Srt = tokens.first().unwrap_or(&BaseOp::Add) {
@@ -90,9 +94,7 @@ impl SourceProgram {
 mod tests {
     use super::*;
     fn test(program: &str, expected: Vec<BaseOp>) {
-        let lexed = SourceProgram::new(String::from(program))
-            .lex()
-            .expect(&format!("Failed to lex string \"{program}\""));
+        let lexed = SourceProgram::new(String::from(program)).lex();
         let manual = TokenStream::new(expected);
         assert_eq!(
             lexed, manual,

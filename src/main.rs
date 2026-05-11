@@ -130,7 +130,7 @@ mod cli {
                     });
                 }
                 let source = compiler::SourceProgram(fs::read_to_string(input).unwrap());
-                let mut source = source.lex().unwrap();
+                let mut source = source.lex();
                 if let Emit::Stream = emit {
                     let mut encoded = vec![1];
                     encoded.append(&mut bitcode::encode(&source).unwrap());
