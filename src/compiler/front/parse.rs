@@ -23,7 +23,7 @@ use crate::compiler::front::{BaseOp, Block, Node, TokenStream};
 impl TokenStream {
     /// Parses the stream of tokens & turns it into an AST
     pub fn parse(&mut self) -> (Block, usize) {
-        let mut program = Block(Vec::new());
+        let mut program = Block::new(Vec::new());
         let mut tokens = self.0.iter();
         let mut times_drained = 0;
         while let Some(token) = tokens.next() {
@@ -66,44 +66,47 @@ mod tests {
     }
     #[test]
     fn add() {
-        test("+++", Block(vec![Node::Add; 3]));
+        test("+++", Block::new(vec![Node::Add; 3]));
     }
     #[test]
     fn sub() {
-        test("---", Block(vec![Node::Sub; 3]));
+        test("---", Block::new(vec![Node::Sub; 3]));
     }
     #[test]
     fn mvr() {
-        test(">>>", Block(vec![Node::Mvr; 3]));
+        test(">>>", Block::new(vec![Node::Mvr; 3]));
     }
     #[test]
     fn mvl() {
-        test("<<<", Block(vec![Node::Mvl; 3]));
+        test("<<<", Block::new(vec![Node::Mvl; 3]));
     }
     #[test]
     fn out() {
-        test("...", Block(vec![Node::Out; 3]));
+        test("...", Block::new(vec![Node::Out; 3]));
     }
     #[test]
     fn inp() {
-        test(",,,", Block(vec![Node::Inp; 3]));
+        test(",,,", Block::new(vec![Node::Inp; 3]));
     }
     #[test]
     fn lop() {
-        test("[...]", Block(vec![Node::Lop(Block(vec![Node::Out; 3]))]));
+        test(
+            "[...]",
+            Block::new(vec![Node::Lop(Block::new(vec![Node::Out; 3]))]),
+        );
     }
     #[test]
     fn mixed() {
         test(
             ",+++++[>+++++<-]>.",
-            Block(vec![
+            Block::new(vec![
                 Node::Inp,
                 Node::Add,
                 Node::Add,
                 Node::Add,
                 Node::Add,
                 Node::Add,
-                Node::Lop(Block(vec![
+                Node::Lop(Block::new(vec![
                     Node::Mvr,
                     Node::Add,
                     Node::Add,
@@ -117,6 +120,6 @@ mod tests {
                 Node::Out,
             ]),
         );
-        test(",.,", Block(vec![Node::Inp, Node::Out, Node::Inp]));
+        test(",.,", Block::new(vec![Node::Inp, Node::Out, Node::Inp]));
     }
 }

@@ -65,19 +65,23 @@ impl fmt::Display for Error {
             Self::NegativeAddress(pos) => {
                 write!(
                     f,
-                    "Pointer moved to a negative address at {} {}",
+                    "Pointer moved to a negative address at line {}, character {}",
                     pos.0, pos.1
                 )
             }
             Self::TooLargeAddress(pos) => {
                 write!(
                     f,
-                    "Pointer moved to a memory address >= 30_000 at {} {}",
+                    "Pointer moved to a memory address >= 30_000 at line {}, character {}",
                     pos.0, pos.1
                 )
             }
-            Self::UnmatchedStart(pos) => write!(f, "Unmatched [ at {} {}", pos.0, pos.1),
-            Self::UnmatchedEnd(pos) => write!(f, "Unmatched ] at {} {}", pos.0, pos.1),
+            Self::UnmatchedStart(pos) => {
+                write!(f, "Unmatched [ at line {}, character {}", pos.0, pos.1)
+            }
+            Self::UnmatchedEnd(pos) => {
+                write!(f, "Unmatched ] at line {}, character {}", pos.0, pos.1)
+            }
             Self::JumpType => write!(f, "Wrong Jump type"),
             Self::Stop => write!(f, "Program was requested to stop"),
         }
@@ -101,6 +105,64 @@ impl From<ReadlineError> for Error {
             err => panic!(
                 "Unexpected error: {err} found, please notify your distributor of the program"
             ),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    mod display {
+        use super::*;
+        fn test(error: Error, expected: &str) {
+            assert_eq!(
+                format!("{}", error),
+                String::from(expected),
+                "Failed to write correct output\nExpected output: \"{expected:#?}\"\nRecieved output: \"{error}\""
+            )
+        }
+        #[test]
+        fn jump_type() {
+            test(Error::JumpType, "Wrong Jump type");
+        }
+        #[test]
+        fn stop() {
+            test(Error::Stop, "Program was requested to stop");
+        }
+        // I don't know how I should test the `Error::Io`
+        // TODO: Implement testing for `Error::Io`
+        const LINE: usize = 69;
+        const CHAR: usize = 420;
+        const POS: (usize, usize) = (LINE, CHAR);
+        #[test]
+        fn negative_address() {
+            test(
+                Error::NegativeAddress(POS),
+                &format!("Pointer moved to a negative address at line {LINE}, character {CHAR}"),
+            );
+        }
+        #[test]
+        fn too_large_address() {
+            test(
+                Error::TooLargeAddress(POS),
+                &format!(
+                    "Pointer moved to a memory address >= 30_000 at line {LINE}, character {CHAR}"
+                ),
+            );
+        }
+        #[test]
+        fn unmatched_start() {
+            test(
+                Error::UnmatchedStart(POS),
+                &format!("Unmatched [ at line {LINE}, character {CHAR}"),
+            );
+        }
+        #[test]
+        fn unmatched_end() {
+            test(
+                Error::UnmatchedEnd(POS),
+                &format!("Unmatched ] at line {LINE}, character {CHAR}"),
+            );
         }
     }
 }

@@ -117,3 +117,38 @@ impl SourceProgram {
         Self(source)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn block_push() {
+        let mut manual = Block::default();
+        for _ in 0..3 {
+            manual.push(Node::Add);
+        }
+        assert_eq!(
+            manual,
+            Block::new(vec![Node::Add; 3]),
+            "Failed to push {:#?} 3 times to {:#?}\nExpected output: {:#?}\nOutput recieved: {manual:#?}",
+            Node::Add,
+            Block::default(),
+            Block::new(vec![Node::Add; 3]),
+        );
+    }
+    #[test]
+    fn stream_push() {
+        let mut manual = TokenStream::default();
+        for _ in 0..3 {
+            manual.push(BaseOp::Add);
+        }
+        assert_eq!(
+            manual,
+            TokenStream::new(vec![BaseOp::Add; 3],),
+            "Failed to push {:#?} 3 times to {:#?}\nExpected output: {:#?}\nOutput recieved: {manual:#?}",
+            BaseOp::Add,
+            TokenStream::default(),
+            TokenStream::new(vec![BaseOp::Add; 3],),
+        );
+    }
+}
