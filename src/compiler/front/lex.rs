@@ -93,72 +93,44 @@ impl SourceProgram {
 #[cfg(test)]
 mod tests {
     use super::*;
-    fn test(program: &str, expected: Vec<BaseOp>) {
+    use rstest::rstest;
+    #[rstest]
+    #[case::add("+++", vec!{BaseOp::Add; 3})]
+    #[case::sub("---", vec![BaseOp::Sub; 3])]
+    #[case::mvl("<<<", vec![BaseOp::Mvl; 3])]
+    #[case::mvr(">>>", vec![BaseOp::Mvr; 3])]
+    //
+    #[case::out("...", vec![BaseOp::Out; 3])]
+    #[case::inp(",,,", vec![BaseOp::Inp; 3])]
+    #[case::srt("[[[", vec![BaseOp::Srt; 3])]
+    #[case::end("]]]", vec![BaseOp::End; 3])]
+    #[case::mixed(",+++++[>+++++<-]>.",
+        vec![
+            BaseOp::Inp,
+            BaseOp::Add,
+            BaseOp::Add,
+            BaseOp::Add,
+            BaseOp::Add,
+            BaseOp::Add,
+            BaseOp::Srt,
+            BaseOp::Mvr,
+            BaseOp::Add,
+            BaseOp::Add,
+            BaseOp::Add,
+            BaseOp::Add,
+            BaseOp::Add,
+            BaseOp::Mvl,
+            BaseOp::Sub,
+            BaseOp::End,
+            BaseOp::Mvr,
+            BaseOp::Out,
+        ])]
+    fn lex(#[case] program: &str, #[case] expected: Vec<BaseOp>) {
         let lexed = SourceProgram::new(String::from(program)).lex();
         let manual = TokenStream::new(expected);
         assert_eq!(
             lexed, manual,
             "Lexed string {program} doesn't match expected output\nLexed output: {lexed:#?}\nExpected output: {manual:#?}"
         );
-    }
-
-    #[test]
-    fn add() {
-        test("+++", vec![BaseOp::Add; 3]);
-    }
-    #[test]
-    fn sub() {
-        test("---", vec![BaseOp::Sub; 3]);
-    }
-    #[test]
-    fn mvl() {
-        test("<<<", vec![BaseOp::Mvl; 3]);
-    }
-    #[test]
-    fn mvr() {
-        test(">>>", vec![BaseOp::Mvr; 3]);
-    }
-    #[test]
-    fn out() {
-        test("...", vec![BaseOp::Out; 3]);
-    }
-    #[test]
-    fn inp() {
-        test(",,,", vec![BaseOp::Inp; 3]);
-    }
-    #[test]
-    fn srt() {
-        test("[[[", vec![BaseOp::Srt; 3]);
-    }
-    #[test]
-    fn end() {
-        test("]]]", vec![BaseOp::End; 3]);
-    }
-    #[test]
-    fn mixed() {
-        test(
-            ",+++++[>+++++<-]>.",
-            vec![
-                BaseOp::Inp,
-                BaseOp::Add,
-                BaseOp::Add,
-                BaseOp::Add,
-                BaseOp::Add,
-                BaseOp::Add,
-                BaseOp::Srt,
-                BaseOp::Mvr,
-                BaseOp::Add,
-                BaseOp::Add,
-                BaseOp::Add,
-                BaseOp::Add,
-                BaseOp::Add,
-                BaseOp::Mvl,
-                BaseOp::Sub,
-                BaseOp::End,
-                BaseOp::Mvr,
-                BaseOp::Out,
-            ],
-        );
-        test(",.,", vec![BaseOp::Inp, BaseOp::Out, BaseOp::Inp]);
     }
 }

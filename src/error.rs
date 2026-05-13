@@ -112,57 +112,24 @@ impl From<ReadlineError> for Error {
 #[cfg(test)]
 mod tests {
     use super::*;
-    mod display {
-        use super::*;
-        fn test(error: Error, expected: &str) {
-            assert_eq!(
-                format!("{}", error),
-                String::from(expected),
-                "Failed to write correct output\nExpected output: \"{expected:#?}\"\nRecieved output: \"{error}\""
-            )
-        }
-        #[test]
-        fn jump_type() {
-            test(Error::JumpType, "Wrong Jump type");
-        }
-        #[test]
-        fn stop() {
-            test(Error::Stop, "Program was requested to stop");
-        }
-        // I don't know how I should test the `Error::Io`
-        // TODO: Implement testing for `Error::Io`
-        const LINE: usize = 69;
-        const CHAR: usize = 420;
-        const POS: (usize, usize) = (LINE, CHAR);
-        #[test]
-        fn negative_address() {
-            test(
-                Error::NegativeAddress(POS),
-                &format!("Pointer moved to a negative address at line {LINE}, character {CHAR}"),
-            );
-        }
-        #[test]
-        fn too_large_address() {
-            test(
-                Error::TooLargeAddress(POS),
-                &format!(
-                    "Pointer moved to a memory address >= 30_000 at line {LINE}, character {CHAR}"
-                ),
-            );
-        }
-        #[test]
-        fn unmatched_start() {
-            test(
-                Error::UnmatchedStart(POS),
-                &format!("Unmatched [ at line {LINE}, character {CHAR}"),
-            );
-        }
-        #[test]
-        fn unmatched_end() {
-            test(
-                Error::UnmatchedEnd(POS),
-                &format!("Unmatched ] at line {LINE}, character {CHAR}"),
-            );
-        }
+    use rstest::rstest;
+    const LINE: usize = 69;
+    const CHAR: usize = 420;
+    const POS: (usize, usize) = (LINE, CHAR);
+    #[rstest]
+    #[case::jump_type(Error::JumpType, "Wrong Jump type")]
+    // I don't know how I should test the `Error::Io`
+    // TODO: Implement testing for `Error::Io`
+    #[case::stop(Error::Stop, "Program was requested to stop")]
+    #[case::negative_address(Error::NegativeAddress(POS), &format!("Pointer moved to a negative address at line {LINE}, character {CHAR}"))]
+    #[case::too_large_address(Error::TooLargeAddress(POS), &format!("Pointer moved to a memory address >= 30_000 at line {LINE}, character {CHAR}"))]
+    #[case::unmatched_start(Error::UnmatchedStart(POS), &format!("Unmatched [ at line {LINE}, character {CHAR}"))]
+    #[case::unmatched_end(Error::UnmatchedEnd(POS), &format!("Unmatched ] at line {LINE}, character {CHAR}"))]
+    fn display(#[case] error: Error, #[case] expected: &str) {
+        assert_eq!(
+            format!("{}", error),
+            String::from(expected),
+            "Failed to write correct output\nExpected output: \"{expected:#?}\"\nRecieved output: \"{error}\""
+        )
     }
 }

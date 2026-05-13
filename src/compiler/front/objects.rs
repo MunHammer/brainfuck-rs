@@ -121,7 +121,8 @@ impl SourceProgram {
 #[cfg(test)]
 mod tests {
     use super::*;
-    #[test]
+    use rstest::rstest;
+    #[rstest]
     fn block_push() {
         let mut manual = Block::default();
         for _ in 0..3 {
@@ -136,7 +137,7 @@ mod tests {
             Block::new(vec![Node::Add; 3]),
         );
     }
-    #[test]
+    #[rstest]
     fn stream_push() {
         let mut manual = TokenStream::default();
         for _ in 0..3 {

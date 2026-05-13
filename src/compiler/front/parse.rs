@@ -54,51 +54,16 @@ impl TokenStream {
 #[cfg(test)]
 mod tests {
     use super::{Block, Node};
-    fn test(program: &str, expected: Block) {
-        let parsed = crate::compiler::SourceProgram::new(String::from(program))
-            .lex()
-            .parse()
-            .0;
-        assert_eq!(
-            parsed, expected,
-            "Parsed string {program} doesn't match expected output\nParsed output: {parsed:#?}\nExpected output: {expected:#?}"
-        );
-    }
-    #[test]
-    fn add() {
-        test("+++", Block::new(vec![Node::Add; 3]));
-    }
-    #[test]
-    fn sub() {
-        test("---", Block::new(vec![Node::Sub; 3]));
-    }
-    #[test]
-    fn mvr() {
-        test(">>>", Block::new(vec![Node::Mvr; 3]));
-    }
-    #[test]
-    fn mvl() {
-        test("<<<", Block::new(vec![Node::Mvl; 3]));
-    }
-    #[test]
-    fn out() {
-        test("...", Block::new(vec![Node::Out; 3]));
-    }
-    #[test]
-    fn inp() {
-        test(",,,", Block::new(vec![Node::Inp; 3]));
-    }
-    #[test]
-    fn lop() {
-        test(
-            "[...]",
-            Block::new(vec![Node::Lop(Block::new(vec![Node::Out; 3]))]),
-        );
-    }
-    #[test]
-    fn mixed() {
-        test(
-            ",+++++[>+++++<-]>.",
+    use rstest::rstest;
+    #[rstest]
+    #[case::add("+++", Block::new(vec![Node::Add; 3]))]
+    #[case::sub("---", Block::new(vec![Node::Sub; 3]))]
+    #[case::mvr(">>>", Block::new(vec![Node::Mvr; 3]))]
+    #[case::mvl("<<<", Block::new(vec![Node::Mvl; 3]))]
+    #[case::out("...", Block::new(vec![Node::Out; 3]))]
+    #[case::inp(",,,", Block::new(vec![Node::Inp; 3]))]
+    #[case::lop("[...]", Block::new(vec![Node::Lop(Block::new(vec![Node::Out; 3]))]))]
+    #[case::mixed(",+++++[>+++++<-]>.",
             Block::new(vec![
                 Node::Inp,
                 Node::Add,
@@ -118,8 +83,15 @@ mod tests {
                 ])),
                 Node::Mvr,
                 Node::Out,
-            ]),
+            ]))]
+    fn parsing(#[case] program: &str, #[case] expected: Block) {
+        let parsed = crate::compiler::SourceProgram::new(String::from(program))
+            .lex()
+            .parse()
+            .0;
+        assert_eq!(
+            parsed, expected,
+            "Parsed string {program} doesn't match expected output\nParsed output: {parsed:#?}\nExpected output: {expected:#?}"
         );
-        test(",.,", Block::new(vec![Node::Inp, Node::Out, Node::Inp]));
     }
 }
