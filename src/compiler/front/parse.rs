@@ -91,7 +91,7 @@ mod tests {
             .0;
         assert_eq!(
             parsed, expected,
-            "Parsed string {program} doesn't match expected output\nParsed output: {parsed:#?}\nExpected output: {expected:#?}"
+            "Parsed string {program} doesn't match expected output\nReceived output: {parsed:#?}\nExpected output: {expected:#?}"
         );
     }
 }

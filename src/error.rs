@@ -129,7 +129,7 @@ mod tests {
         assert_eq!(
             format!("{}", error),
             String::from(expected),
-            "Failed to write correct output\nExpected output: \"{expected:#?}\"\nRecieved output: \"{error}\""
+            "Failed to write correct output\nRecieved output: {error:#?}\nExpected output: {expected:#?}"
         )
     }
 }

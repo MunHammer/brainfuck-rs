@@ -266,10 +266,19 @@ mod tests {
             let mut state = State::new();
             let mut output = FakeOutput(String::new());
             state
-                .inp_inner(FakeInput(input.into()), &mut output)
+                .inp_inner(FakeInput(input.clone().into()), &mut output)
                 .unwrap();
-            assert_eq!(state.tape[state.ptr], expected);
-            assert_eq!(output.0, String::from(expected_out));
+            assert_eq!(
+                state.tape[state.ptr], expected,
+                "State::inp didn't take input correctly from set of inputs {input:#?}\nRecieved output: {:#?}\nExpected output: {expected:#?}",
+                state.tape[state.ptr]
+            );
+            assert_eq!(
+                output.0,
+                String::from(expected_out),
+                "State::inp didn't output correctly for the user from set of inputs {input:#?}\nRecieved output: {:#?}\nExpected output: {expected_out:#?}",
+                output.0
+            );
         }
 
         #[rstest]
@@ -280,7 +289,11 @@ mod tests {
             let mut output = FakeOutput(String::new());
             state.add(cell);
             state.out_inner(times, &mut output).unwrap();
-            assert_eq!(output.0, expected);
+            assert_eq!(
+                output.0, expected,
+                "Didn't output the correct value(s) from cell {cell:#?}\nRecieved output: {:#?}\nExpected output: {expected:#?}",
+                output.0
+            );
         }
     }
 }

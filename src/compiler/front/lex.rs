@@ -130,7 +130,7 @@ mod tests {
         let manual = TokenStream::new(expected);
         assert_eq!(
             lexed, manual,
-            "Lexed string {program} doesn't match expected output\nLexed output: {lexed:#?}\nExpected output: {manual:#?}"
+            "Lexed string {program} doesn't match expected output\nRecieved output: {lexed:#?}\nExpected output: {manual:#?}"
         );
     }
 }

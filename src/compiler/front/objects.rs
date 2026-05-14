@@ -131,7 +131,7 @@ mod tests {
         assert_eq!(
             manual,
             Block::new(vec![Node::Add; 3]),
-            "Failed to push {:#?} 3 times to {:#?}\nExpected output: {:#?}\nOutput recieved: {manual:#?}",
+            "Failed to push {:#?} 3 times to {:#?}\nRecieved output: {manual:#?}\nExpected output: {:#?}",
             Node::Add,
             Block::default(),
             Block::new(vec![Node::Add; 3]),
@@ -146,7 +146,7 @@ mod tests {
         assert_eq!(
             manual,
             TokenStream::new(vec![BaseOp::Add; 3],),
-            "Failed to push {:#?} 3 times to {:#?}\nExpected output: {:#?}\nOutput recieved: {manual:#?}",
+            "Failed to push {:#?} 3 times to {:#?}\nRecieved output: {manual:#?}\nExpected output: {:#?}",
             BaseOp::Add,
             TokenStream::default(),
             TokenStream::new(vec![BaseOp::Add; 3],),
