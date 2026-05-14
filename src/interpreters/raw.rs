@@ -55,7 +55,7 @@ impl SourceProgram {
                     state.end(1)?;
                 }
                 '.' => {
-                    state.out(1, false)?;
+                    state.out(1)?;
                 }
                 ',' => {
                     state.inp()?;

@@ -54,6 +54,20 @@ impl Jump {
         Err(crate::Error::JumpType)
     }
 }
+
+// This trait is for testing methods that use stdin
+trait Input {
+    fn read_key(&mut self) -> crate::Result<Key>;
+}
+
+struct TermInput;
+
+impl Input for TermInput {
+    fn read_key(&mut self) -> crate::Result<Key> {
+        Ok(Term::stdout().read_key_raw()?)
+    }
+}
+
 impl State {
     /// Creates a new instance of the [`State`] struct, with [`Jump::Stack`]
     #[must_use]
@@ -143,45 +157,51 @@ impl State {
         Ok(self)
     }
     /// Outputs the ascii value of the current cell
-    pub fn out(&self, times: usize, capture: bool) -> crate::Result<(&Self, Option<String>)> {
-        let mut out = String::new();
+    pub fn out(&self, times: usize) -> crate::Result<&Self> {
+        self.out_inner(times, stdout())
+    }
+    /// Outputs the ascii value of the current cell, with a trait for testing
+    pub fn out_inner<Out: Write>(&self, times: usize, mut write: Out) -> crate::Result<&Self> {
         for _ in 0..times {
-            if capture {
-                out.push(self.tape[self.ptr] as char);
-            } else {
-                print!("{}", self.tape[self.ptr] as char);
-                stdout().flush()?;
-            }
+            write!(write, "{}", self.tape[self.ptr] as char)?;
+            write.flush()?;
         }
-        if capture {
-            return Ok((self, Some(out)));
-        }
-        Ok((self, None))
+        Ok(self)
     }
     /// Takes input
     pub fn inp(&mut self) -> crate::Result<&mut Self> {
+        self.inp_inner(TermInput, stdout())
+    }
+    /// Takes input, with a trait, for testing
+    fn inp_inner<Inp: Input, Out: Write>(
+        &mut self,
+        mut read: Inp,
+        mut write: Out,
+    ) -> crate::Result<&mut Self> {
         let mut buf: [u8; 1] = [0];
         self.tape[self.ptr] = {
             let mut out: Option<char> = None;
             loop {
                 let mut done = false;
-                match Term::stdout().read_key_raw()? {
+                match read.read_key()? {
                     Key::Char(c) => {
+                        if out.is_none() {
+                            write!(write, "{c}")?;
+                        } else {
+                            write!(write, "\x7f{c}")?;
+                        }
                         out = Some(c);
                     }
                     Key::Enter => {
                         done = true;
                     }
                     Key::Backspace => {
-                        print!("\x7f");
+                        write!(write, "\x7f")?;
                         out = None;
                     }
                     _ => (),
                 }
-                if let Some(val) = out {
-                    print!("\x7f{val}");
-                }
-                stdout().flush()?;
+                write.flush()?;
                 if done && out.is_some() {
                     break;
                 }
@@ -203,5 +223,64 @@ impl State {
 impl Default for State {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rstest::rstest;
+    mod state {
+        use std::{collections::VecDeque, io};
+
+        use super::*;
+        #[derive(Debug)]
+        struct FakeInput(VecDeque<Key>);
+        impl Input for FakeInput {
+            fn read_key(&mut self) -> crate::Result<Key> {
+                match self.0.pop_front() {
+                    Some(key) => Ok(key),
+                    None => Err(crate::Error::IO(io::ErrorKind::UnexpectedEof.into())),
+                }
+            }
+        }
+        struct FakeOutput(String);
+        impl Write for FakeOutput {
+            fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+                for c in buf {
+                    self.0.push(*c as char)
+                }
+                Ok(buf.len())
+            }
+            fn flush(&mut self) -> io::Result<()> {
+                Ok(())
+            }
+        }
+        // backspace is "\x7f"
+        #[rstest]
+        #[case::one(vec![Key::Char('a'), Key::Enter], b'a', "a")]
+        #[case::two(vec![Key::Char('b'), Key::Char('c'), Key::Enter], b'c', "b\x7fc")]
+        #[case::three(vec![Key::Char('d'), Key::Char('e'), Key::Char('f'), Key::Enter], b'f', "d\x7fe\x7ff")]
+        #[case::backspace(vec![Key::Char('g'), Key::Backspace, Key::Char('h'), Key::Enter], b'h', "g\x7fh")]
+        fn inp(#[case] input: Vec<Key>, #[case] expected: u8, #[case] expected_out: &str) {
+            let mut state = State::new();
+            let mut output = FakeOutput(String::new());
+            state
+                .inp_inner(FakeInput(input.into()), &mut output)
+                .unwrap();
+            assert_eq!(state.tape[state.ptr], expected);
+            assert_eq!(output.0, String::from(expected_out));
+        }
+
+        #[rstest]
+        #[case::once(b'j', "j", 1)]
+        #[case::twice(b'k', "kk", 2)]
+        fn out(#[case] cell: u8, #[case] expected: &str, #[case] times: usize) {
+            let mut state = State::new();
+            let mut output = FakeOutput(String::new());
+            state.add(cell);
+            state.out_inner(times, &mut output).unwrap();
+            assert_eq!(output.0, expected);
+        }
     }
 }
