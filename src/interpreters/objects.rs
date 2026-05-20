@@ -120,7 +120,9 @@ impl State {
     }
     /// Moves the pointer right
     pub fn mvr(&mut self, amount: usize, x: usize, y: usize) -> crate::Result<&mut Self> {
-        if self.ptr + amount == 30_000 {
+        if let (_, true) = self.ptr.overflowing_add(amount) {
+            return crate::Result::Err(crate::Error::TooLargeAddress((x, y)));
+        } else if self.ptr + amount > 30_000 {
             return crate::Result::Err(crate::Error::TooLargeAddress((x, y)));
         }
         self.ptr += amount;
@@ -128,7 +130,7 @@ impl State {
     }
     /// Moves the pointer left
     pub fn mvl(&mut self, amount: usize, x: usize, y: usize) -> crate::Result<&mut Self> {
-        if self.ptr.saturating_sub(amount) == 0 {
+        if let (_, true) = self.ptr.overflowing_sub(amount) {
             return crate::Result::Err(crate::Error::NegativeAddress((x, y)));
         }
         self.ptr -= amount;
@@ -287,13 +289,54 @@ mod tests {
         fn out(#[case] cell: u8, #[case] expected: &str, #[case] times: usize) {
             let mut state = State::new();
             let mut output = FakeOutput(String::new());
-            state.add(cell);
+            state.tape[state.ptr] = cell;
             state.out_inner(times, &mut output).unwrap();
             assert_eq!(
                 output.0, expected,
                 "Didn't output the correct value(s) from cell {cell:#?}\nRecieved output: {:#?}\nExpected output: {expected:#?}",
                 output.0
             );
+        }
+
+        #[rstest]
+        #[case::quarter(0, 64, 64)]
+        #[case::half(0, 128, 128)]
+        #[case::overflow(255, 129, 128)]
+        fn add(#[case] starting: u8, #[case] amount: u8, #[case] expected: u8) {
+            let mut state = State::new();
+            state.tape[state.ptr] = starting;
+            state.add(amount);
+            assert_eq!(state.tape[state.ptr], expected);
+        }
+        #[rstest]
+        #[case::quarter(64, 64, 0)]
+        #[case::half(128, 128, 0)]
+        #[case::overflow(0, 128, 128)]
+        fn sub(#[case] starting: u8, #[case] amount: u8, #[case] expected: u8) {
+            let mut state = State::new();
+            state.tape[state.ptr] = starting;
+            state.sub(amount);
+            assert_eq!(state.tape[state.ptr], expected);
+        }
+        #[rstest]
+        #[case::half(30_000, 15_000, 15_000)]
+        #[should_panic(expected = "Failed to move past 0")]
+        #[case::undeflow_panic(0, 1, 420)]
+        fn mvl(#[case] starting: usize, #[case] amount: usize, #[case] expected_cell: usize) {
+            let mut state = State::new();
+            state.ptr = starting;
+            state.mvl(amount, 0, 0).expect("Failed to move past 0");
+            assert_eq!(state.ptr, expected_cell);
+        }
+        #[rstest]
+        #[case::half(0, 15_000, 15_000)]
+        #[should_panic(expected = "Failed to move past 30_000")]
+        #[case::overflow_panic(30_000, 1, 420)]
+        fn mvr(#[case] starting: usize, #[case] amount: usize, #[case] expected_cell: usize) {
+            let mut state = State::new();
+            state.ptr = starting;
+            state.mvr(amount, 0, 0).expect("Failed to move past 30_000");
+            assert_eq!(state.ptr, expected_cell);
         }
     }
 }
