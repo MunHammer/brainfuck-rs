@@ -119,6 +119,8 @@ impl State {
         self
     }
     /// Moves the pointer right
+    /// # Errors
+    /// If the ptr moves to a cell value greater than 30_000
     pub fn mvr(&mut self, amount: usize, x: usize, y: usize) -> crate::Result<&mut Self> {
         if let (_, true) = self.ptr.overflowing_add(amount) {
             return crate::Result::Err(crate::Error::TooLargeAddress((x, y)));
@@ -129,6 +131,8 @@ impl State {
         Ok(self)
     }
     /// Moves the pointer left
+    /// # Errors
+    /// If the ptr moves to a cell value less than 0
     pub fn mvl(&mut self, amount: usize, x: usize, y: usize) -> crate::Result<&mut Self> {
         if let (_, true) = self.ptr.overflowing_sub(amount) {
             return crate::Result::Err(crate::Error::NegativeAddress((x, y)));
@@ -137,33 +141,65 @@ impl State {
         Ok(self)
     }
     /// Starts a loop
-    pub fn srt(&mut self, times: usize) -> crate::Result<&mut Self> {
+    /// # Errors
+    ///
+    pub fn srt(&mut self, times: usize) -> &mut Self {
         for _ in 0..times {
-            if self.tape[self.ptr] == 0 {
-                self.pos = self.jumps.table_pos(self.loop_num)?.1;
+            match &mut self.jumps {
+                Jump::Table(_) => {
+                    if self.tape[self.ptr] == 0 {
+                        self.pos = match self.jumps.table_pos(self.loop_num) {
+                            Ok(val) => val,
+                            Err(err) => unreachable!("Error {err} shouldn't be come across, as Jump::table_pos only panics when the jump isn't a Jump::Table, which has already be checked for"),
+                        }
+                        .1;
+                    }
+                    self.loop_num += 1;
+                }
+                Jump::Stack(stack) => stack.push(self.ptr),
             }
-            self.loop_num += 1;
         }
-        Ok(self)
+        self
     }
     /// Ends a loop
-    pub fn end(&mut self, times: usize) -> crate::Result<&mut Self> {
-        if let Jump::Table(_) = self.jumps {
-            for _ in 0..times {
-                if self.tape[self.ptr] != 0 {
-                    self.pos = self.jumps.table_pos(self.loop_num)?.0 - 1;
+    /// # Errors
+    /// If an unmatched end is detected, only found if the `State` is using `Jump::State`
+    pub fn end(&mut self, times: usize, x: usize, y: usize) -> crate::Result<&mut Self> {
+        for _ in 0..times {
+            match &mut self.jumps {
+                Jump::Table(_) => {
+                    if self.tape[self.ptr] != 0 {
+                        self.pos = match self.jumps.table_pos(self.loop_num) {
+                            Ok(val) => val,
+                            Err(err) => unreachable!("Error {err} shouldn't be come across, as Jump::table_pos only panics when the jump isn't a Jump::Table, which has already be checked for"),
+                        }.0 - 1;
+                    }
+                    self.loop_num -= 1;
                 }
-                self.loop_num -= 1;
+                Jump::Stack(stack) => {
+                    if self.tape[self.ptr] != 0 {
+                        self.pos = if let Some(val) = stack.last() {
+                            *val
+                        } else {
+                            return Err(crate::Error::UnmatchedEnd((x, y)));
+                        }
+                    }
+                    stack.pop();
+                }
             }
         }
         Ok(self)
     }
     /// Outputs the ascii value of the current cell
+    /// # Errors
+    /// Only if there is an I/O error
     pub fn out(&self, times: usize) -> crate::Result<&Self> {
         self.out_inner(times, stdout())
     }
     /// Outputs the ascii value of the current cell, with a trait for testing
-    pub fn out_inner<Out: Write>(&self, times: usize, mut write: Out) -> crate::Result<&Self> {
+    /// # Errors
+    /// Only if there is an I/O error
+    fn out_inner<Out: Write>(&self, times: usize, mut write: Out) -> crate::Result<&Self> {
         for _ in 0..times {
             write!(write, "{}", self.tape[self.ptr] as char)?;
             write.flush()?;
@@ -171,10 +207,14 @@ impl State {
         Ok(self)
     }
     /// Takes input
+    /// # Errors
+    /// If there is an I/O error
     pub fn inp(&mut self) -> crate::Result<&mut Self> {
         self.inp_inner(TermInput, stdout())
     }
     /// Takes input, with a trait, for testing
+    /// # Errors
+    /// If there is an I/O error
     fn inp_inner<Inp: Input, Out: Write>(
         &mut self,
         mut read: Inp,
@@ -250,7 +290,7 @@ mod tests {
         impl Write for FakeOutput {
             fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
                 for c in buf {
-                    self.0.push(*c as char)
+                    self.0.push(*c as char);
                 }
                 Ok(buf.len())
             }
@@ -306,7 +346,11 @@ mod tests {
             let mut state = State::new();
             state.tape[state.ptr] = starting;
             state.add(amount);
-            assert_eq!(state.tape[state.ptr], expected);
+            assert_eq!(
+                state.tape[state.ptr], expected,
+                "Didn't add the correct amount to the cell. Starting value: {starting:#?}. Value to add {amount:#?}\nrecieved output: {:#?}\nExpected output: {expected:#?}",
+                state.tape[state.ptr]
+            );
         }
         #[rstest]
         #[case::quarter(64, 64, 0)]
@@ -316,7 +360,11 @@ mod tests {
             let mut state = State::new();
             state.tape[state.ptr] = starting;
             state.sub(amount);
-            assert_eq!(state.tape[state.ptr], expected);
+            assert_eq!(
+                state.tape[state.ptr], expected,
+                "Didn't subtract the correct amount to the cell. Starting value: {starting:#?}. Value to subtract {amount:#?}\nrecieved output: {:#?}\nExpected output: {expected:#?}",
+                state.tape[state.ptr]
+            );
         }
         #[rstest]
         #[case::half(30_000, 15_000, 15_000)]
@@ -326,7 +374,11 @@ mod tests {
             let mut state = State::new();
             state.ptr = starting;
             state.mvl(amount, 0, 0).expect("Failed to move past 0");
-            assert_eq!(state.ptr, expected_cell);
+            assert_eq!(
+                state.ptr, expected_cell,
+                "Didn't move left the expected amount. Starting cell: {starting:#?}. Cells to move: {amount:#?}\nRecieved balue: {:#?}\nExpected value: {expected_cell:#?}",
+                state.ptr
+            );
         }
         #[rstest]
         #[case::half(0, 15_000, 15_000)]
@@ -337,6 +389,56 @@ mod tests {
             state.ptr = starting;
             state.mvr(amount, 0, 0).expect("Failed to move past 30_000");
             assert_eq!(state.ptr, expected_cell);
+        }
+
+        #[rstest]
+        #[case::empty("[]", vec![])]
+        fn lop_table(#[case] program: &str, #[case] expected: Vec<(usize, usize)>) {
+            let state = State::from_string(program);
+            if let Jump::Table(table) = state.jumps {
+                assert_eq!(table, expected);
+            } else {
+                unreachable!();
+            }
+        }
+        #[rstest]
+        #[case::empty("[]", &[0])]
+        fn lop_stack(#[case] program: &str, #[case] expected_stack: &[usize]) {
+            let mut state = State::new();
+            for c in program.chars() {
+                match c {
+                    '+' => {
+                        state.add(1);
+                    }
+                    '-' => {
+                        state.sub(1);
+                    }
+                    '>' => {
+                        state.mvr(1, 0, 0).unwrap();
+                    }
+                    '<' => {
+                        state.mvl(1, 0, 0).unwrap();
+                    }
+                    '[' => {
+                        state.srt(1);
+                    }
+                    ']' => {
+                        state.end(1, 0, 0).unwrap();
+                    }
+                    ',' => panic!("Please do not enter input to this"),
+
+                    _ => (),
+                }
+            }
+            state.srt(1);
+            assert_eq!(
+                if let Jump::Stack(stack) = state.jumps {
+                    stack
+                } else {
+                    unreachable!()
+                },
+                Vec::from(expected_stack)
+            );
         }
     }
 }

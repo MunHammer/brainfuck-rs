@@ -1,4 +1,4 @@
 # A brainfuck CLI interpreter & compiler
-Made by Mun_Hammer
+Made by Mun Hammer
 
 WIP

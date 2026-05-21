@@ -49,10 +49,10 @@ impl SourceProgram {
                     state.mvr(1, err_pos.0, err_pos.1)?;
                 }
                 '[' => {
-                    state.srt(1)?;
+                    state.srt(1);
                 }
                 ']' => {
-                    state.end(1)?;
+                    state.end(1, err_pos.0, err_pos.1)?;
                 }
                 '.' => {
                     state.out(1)?;
@@ -68,7 +68,6 @@ impl SourceProgram {
             }
             state.pos += 1;
         }
-
         Ok(())
     }
 }

@@ -78,7 +78,7 @@ mod cli {
         /// Optimised Bytecode
         ByteOptimised,
         /// LLVM IR
-        LLVM,
+        Llvm,
         /// Machine Code
         Machine,
         /// Optimised Machine Code
@@ -106,7 +106,7 @@ mod cli {
                 #[cfg(not(feature = "repl"))]
                 panic!("No valid command, Feature not inclded in compilation")
             }
-            Some(Commands::Run { input }) => {
+            Some(Commands::Run { input: _ }) => {
                 #[cfg(feature = "interpret")]
                 {
                     todo!();

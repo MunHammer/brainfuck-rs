@@ -116,9 +116,9 @@ mod tests {
     #[case::unmatched_end(Error::UnmatchedEnd(POS), &format!("Unmatched ] at line {LINE}, character {CHAR}"))]
     fn display(#[case] error: Error, #[case] expected: &str) {
         assert_eq!(
-            format!("{}", error),
+            format!("{error}"),
             String::from(expected),
             "Failed to write correct output\nRecieved output: {error:#?}\nExpected output: {expected:#?}"
-        )
+        );
     }
 }

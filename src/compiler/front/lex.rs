@@ -23,6 +23,7 @@ use crate::compiler::front::{BaseOp, SourceProgram, TokenStream};
 impl SourceProgram {
     /// Turns the source program into a stream of tokens
     /// Also ignores all other lines
+    #[must_use]
     pub fn lex(&self) -> TokenStream {
         let mut tokens: Vec<BaseOp> = Vec::new();
         // Tokenises valid chars
@@ -42,8 +43,10 @@ impl SourceProgram {
         }
         TokenStream(tokens)
     }
-    /// Removes all starting comments from a TokenStream
-    fn rm_comments(tokens: TokenStream) -> crate::Result<TokenStream> {
+    /// Removes all starting comments from a `TokenStream`
+    /// # Errors
+    /// If the loops are ummatched
+    pub fn rm_comments(tokens: TokenStream) -> crate::Result<TokenStream> {
         // Removes comments like:
         /*
         [This is a brainfuck comment, you can put any char in here

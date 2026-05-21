@@ -32,6 +32,8 @@ use std::io::{Read, Write};
 /// A REPL that doesn't panic when there is an error
 /// # Errors
 /// If there is an IO error
+/// # Panics
+/// Mostly just I/O errors
 #[cfg(feature = "repl")]
 pub fn repl() -> crate::Result<()> {
     println!(
@@ -121,7 +123,7 @@ pub fn repl() -> crate::Result<()> {
                                 _ => (),
                             }
                             if let Some(val) = out {
-                                print!("\x7f{}", val);
+                                print!("\x7f{val}");
                             }
                             match std::io::stdout().flush() {
                                 Ok(()) => (),
