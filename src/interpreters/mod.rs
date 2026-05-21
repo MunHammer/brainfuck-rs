@@ -27,7 +27,7 @@ pub mod raw;
 pub use objects::{Jump, State};
 
 use console::{Key, Term};
-use std::io::{Read, Write, stdout};
+use std::io::{Read, Write};
 
 /// A REPL that doesn't panic when there is an error
 /// # Errors
@@ -53,7 +53,7 @@ pub fn repl() -> crate::Result<()> {
             Err(err) => eprintln!("{err}"),
         }
         match std::io::stdin().read_line(&mut inp) {
-            Ok(()) => (),
+            Ok(_) => (),
             Err(err) => eprintln!("{err}"),
         }
         inp = String::from(inp.trim_end());
