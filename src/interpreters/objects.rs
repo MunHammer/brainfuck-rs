@@ -21,7 +21,9 @@ see COPYING for the full license
 //! This file is to declare the structs & enums & impl some basic fuctions
 use console::{Key, Term};
 use std::io::{Write, stdout};
+
 /// An enum to decide if you use a jump table or a jump stack
+#[derive(Debug)]
 pub enum Jump {
     /// A stack of jumps, beter for smaller programs or REPLs
     Stack(Vec<usize>),
@@ -30,6 +32,7 @@ pub enum Jump {
 }
 
 /// A state of a given program
+#[derive(Debug)]
 pub struct State {
     /// The program's tape, in which all of the cells are stored
     pub tape: [u8; 30_000],
@@ -89,17 +92,16 @@ impl State {
             ptr: 0,
             jumps: {
                 let mut jump_table: Vec<(usize, usize)> = Vec::new();
-                let mut depth: usize = 0;
+                let mut loop_num: usize = usize::MAX;
                 for (num, op) in program.into().chars().enumerate() {
                     match op {
                         '[' => {
-                            depth += 1;
+                            loop_num = loop_num.wrapping_add(1);
                             jump_table.push((num, 0));
                         }
                         ']' => {
-                            depth -= 1;
-                            let length = jump_table.len() - depth - 1;
-                            jump_table[length].1 = num;
+                            jump_table[loop_num].1 = num;
+                            loop_num = loop_num.wrapping_sub(1);
                         }
                         _ => (),
                     }
@@ -156,7 +158,7 @@ impl State {
                     }
                     self.loop_num += 1;
                 }
-                Jump::Stack(stack) => stack.push(self.ptr),
+                Jump::Stack(stack) => stack.push(self.pos),
             }
         }
         self
@@ -392,7 +394,9 @@ mod tests {
         }
 
         #[rstest]
-        #[case::empty("[]", vec![])]
+        #[case::empty("[]", vec![(0, 1)])]
+        #[case::basic("[.]", vec![(0, 2)])]
+        #[case::program(">-[++++[<]>->+]<", vec![(2, 14), (7, 9)])]
         fn lop_table(#[case] program: &str, #[case] expected: Vec<(usize, usize)>) {
             let state = State::from_string(program);
             if let Jump::Table(table) = state.jumps {
@@ -402,10 +406,12 @@ mod tests {
             }
         }
         #[rstest]
-        #[case::empty("[]", &[0])]
+        #[case::empty("[", &[0])]
+        #[case::basic("[.", &[0])]
+        #[case::program(">-[++++[<>->+<", &[2, 7])]
         fn lop_stack(#[case] program: &str, #[case] expected_stack: &[usize]) {
             let mut state = State::new();
-            for c in program.chars() {
+            while let Some(c) = program.chars().nth(state.pos) {
                 match c {
                     '+' => {
                         state.add(1);
@@ -426,11 +432,10 @@ mod tests {
                         state.end(1, 0, 0).unwrap();
                     }
                     ',' => panic!("Please do not enter input to this"),
-
                     _ => (),
                 }
+                state.pos += 1;
             }
-            state.srt(1);
             assert_eq!(
                 if let Jump::Stack(stack) = state.jumps {
                     stack
