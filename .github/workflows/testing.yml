@@ -2,9 +2,9 @@ name: Test code for errors
 on:
   push:
     paths:
-      - **.rs
-      - **.toml
-      - **.lock
+      - '**.rs'
+      - '**.toml'
+      - '**.lock'
   pull_request:
     branches:
       - main

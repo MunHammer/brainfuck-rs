@@ -204,6 +204,7 @@ impl State {
     /// Only if there is an I/O error
     pub(crate) fn out_inner(&self, times: usize, mut write: impl Write) -> crate::Result<&Self> {
         for _ in 0..times {
+            dbg!(self.tape[self.ptr]);
             let _ = write.write(&[self.tape[self.ptr]])?;
             write.flush()?;
         }
