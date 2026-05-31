@@ -1,11 +1,14 @@
 name: Test code for errors
 on:
   push:
-    branches:
-      - main
+    paths:
+      - **.rs
+      - **.toml
+      - **.lock
   pull_request:
     branches:
       - main
+  workflow_call:
 jobs:
   test:
     name: Test suite

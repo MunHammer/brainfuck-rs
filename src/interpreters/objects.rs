@@ -59,11 +59,12 @@ impl Jump {
 }
 
 // This trait is for testing methods that use stdin
-trait Input {
+pub(crate) trait Input {
     fn read_key(&mut self) -> crate::Result<Key>;
 }
 
-struct TermInput;
+#[derive(Clone)]
+pub(crate) struct TermInput;
 
 impl Input for TermInput {
     fn read_key(&mut self) -> crate::Result<Key> {
@@ -122,7 +123,7 @@ impl State {
     }
     /// Moves the pointer right
     /// # Errors
-    /// If the ptr moves to a cell value greater than 30_000
+    /// If the ptr moves to a cell value greater than `30_000`
     pub fn mvr(&mut self, amount: usize, x: usize, y: usize) -> crate::Result<&mut Self> {
         if let (_, true) = self.ptr.overflowing_add(amount) {
             return crate::Result::Err(crate::Error::TooLargeAddress((x, y)));
@@ -201,9 +202,9 @@ impl State {
     /// Outputs the ascii value of the current cell, with a trait for testing
     /// # Errors
     /// Only if there is an I/O error
-    fn out_inner<Out: Write>(&self, times: usize, mut write: Out) -> crate::Result<&Self> {
+    pub(crate) fn out_inner(&self, times: usize, mut write: impl Write) -> crate::Result<&Self> {
         for _ in 0..times {
-            write!(write, "{}", self.tape[self.ptr] as char)?;
+            let _ = write.write(&[self.tape[self.ptr]])?;
             write.flush()?;
         }
         Ok(self)
@@ -217,10 +218,10 @@ impl State {
     /// Takes input, with a trait, for testing
     /// # Errors
     /// If there is an I/O error
-    fn inp_inner<Inp: Input, Out: Write>(
+    pub(crate) fn inp_inner(
         &mut self,
-        mut read: Inp,
-        mut write: Out,
+        mut read: impl Input,
+        mut write: impl Write,
     ) -> crate::Result<&mut Self> {
         let mut buf: [u8; 1] = [0];
         self.tape[self.ptr] = {
@@ -271,35 +272,45 @@ impl Default for State {
 }
 
 #[cfg(test)]
+#[derive(Debug, Clone)]
+pub(crate) struct FakeInput(pub(crate) std::collections::VecDeque<Key>);
+#[cfg(test)]
+impl Input for FakeInput {
+    fn read_key(&mut self) -> crate::Result<Key> {
+        match self.0.pop_front() {
+            Some(key) => Ok(key),
+            None => Err(crate::Error::IO(std::io::ErrorKind::UnexpectedEof)),
+        }
+    }
+}
+#[cfg(test)]
+pub(crate) struct FakeOutput(pub(crate) Vec<u8>);
+#[cfg(test)]
+impl FakeOutput {
+    pub(crate) fn string(&self) -> String {
+        self.0.iter().map(|b| *b as char).collect()
+    }
+}
+#[cfg(test)]
+impl Write for FakeOutput {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        dbg!(buf);
+        for b in buf {
+            dbg!(b);
+            self.0.push(*b);
+        }
+        Ok(buf.len())
+    }
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+#[cfg(test)]
 mod tests {
     use super::*;
     use rstest::rstest;
     mod state {
-        use std::{collections::VecDeque, io};
-
         use super::*;
-        #[derive(Debug)]
-        struct FakeInput(VecDeque<Key>);
-        impl Input for FakeInput {
-            fn read_key(&mut self) -> crate::Result<Key> {
-                match self.0.pop_front() {
-                    Some(key) => Ok(key),
-                    None => Err(crate::Error::IO(io::ErrorKind::UnexpectedEof.into())),
-                }
-            }
-        }
-        struct FakeOutput(String);
-        impl Write for FakeOutput {
-            fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-                for c in buf {
-                    self.0.push(*c as char);
-                }
-                Ok(buf.len())
-            }
-            fn flush(&mut self) -> io::Result<()> {
-                Ok(())
-            }
-        }
         // backspace is "\x7f"
         #[rstest]
         #[case::one(vec![Key::Char('a'), Key::Enter], b'a', "a")]
@@ -308,7 +319,7 @@ mod tests {
         #[case::backspace(vec![Key::Char('g'), Key::Backspace, Key::Char('h'), Key::Enter], b'h', "g\x7fh")]
         fn inp(#[case] input: Vec<Key>, #[case] expected: u8, #[case] expected_out: &str) {
             let mut state = State::new();
-            let mut output = FakeOutput(String::new());
+            let mut output = FakeOutput(Vec::new());
             state
                 .inp_inner(FakeInput(input.clone().into()), &mut output)
                 .unwrap();
@@ -318,7 +329,7 @@ mod tests {
                 state.tape[state.ptr]
             );
             assert_eq!(
-                output.0,
+                output.string(),
                 String::from(expected_out),
                 "State::inp didn't output correctly for the user from set of inputs {input:#?}\nRecieved output: {:#?}\nExpected output: {expected_out:#?}",
                 output.0
@@ -330,11 +341,12 @@ mod tests {
         #[case::twice(b'k', "kk", 2)]
         fn out(#[case] cell: u8, #[case] expected: &str, #[case] times: usize) {
             let mut state = State::new();
-            let mut output = FakeOutput(String::new());
+            let mut output = FakeOutput(Vec::new());
             state.tape[state.ptr] = cell;
             state.out_inner(times, &mut output).unwrap();
             assert_eq!(
-                output.0, expected,
+                output.string(),
+                expected,
                 "Didn't output the correct value(s) from cell {cell:#?}\nRecieved output: {:#?}\nExpected output: {expected:#?}",
                 output.0
             );

@@ -24,10 +24,10 @@ use rustyline::error::ReadlineError;
 use std::fmt;
 /// The standard brainfuck error type
 /// Has runtime & syntax errors
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Error {
     /// A standard IO error, just a wrapper for [`std::io::Error`]
-    IO(std::io::Error),
+    IO(std::io::ErrorKind),
     /// When something request for the program to stop
     Stop,
     /// When the pointer moves to a negative memory address that doesn't exist
@@ -79,7 +79,7 @@ impl fmt::Display for Error {
 
 impl From<std::io::Error> for Error {
     fn from(error: std::io::Error) -> Self {
-        Error::IO(error)
+        Error::IO(error.kind())
     }
 }
 
@@ -120,5 +120,30 @@ mod tests {
             String::from(expected),
             "Failed to write correct output\nRecieved output: {error:#?}\nExpected output: {expected:#?}"
         );
+    }
+
+    #[rstest]
+    #[case(
+        crate::Error::IO(std::io::ErrorKind::NotFound),
+        std::io::Error::new(std::io::ErrorKind::NotFound, "")
+    )]
+    fn from_io(#[case] expected: crate::Error, #[case] error: std::io::Error) {
+        assert_eq!(expected, crate::Error::from(error));
+    }
+
+    #[cfg(feature = "repl")]
+    #[rstest]
+    #[case::io(
+        crate::Error::IO(std::io::ErrorKind::NotFound),
+        ReadlineError::Io(std::io::Error::from(std::io::ErrorKind::NotFound))
+    )]
+    #[case::stop(crate::Error::Stop, ReadlineError::Eof)]
+    #[should_panic = "Unexpected error: Signal(Resize) found, please notify your distributor of the program"]
+    #[case::unkown_error(
+        crate::Error::Stop,
+        ReadlineError::Signal(rustyline::error::Signal::Resize)
+    )]
+    fn from_rustyline(#[case] expected: crate::Error, #[case] error: ReadlineError) {
+        assert_eq!(expected, Error::from(error));
     }
 }
