@@ -88,9 +88,9 @@ impl From<ReadlineError> for Error {
     fn from(error: ReadlineError) -> Self {
         match error {
             ReadlineError::Io(io_err) => Error::from(io_err),
-            ReadlineError::Eof
-            | ReadlineError::Interrupted
-            | ReadlineError::Signal(rustyline::error::Signal::Interrupt) => Error::Stop,
+            ReadlineError::Eof | ReadlineError::Interrupted => Error::Stop,
+            #[cfg(unix)]
+            ReadlineError::Signal(rustyline::error::Signal::Interrupt) => Error::Stop,
             err => panic!(
                 "Unexpected error: {err} found, please notify your distributor of the program"
             ),
