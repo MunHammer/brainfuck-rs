@@ -84,7 +84,7 @@ impl State {
             jumps: Jump::Stack(Vec::new()),
         }
     }
-    /// Using an object that can be turned into a string, makes a [`ProgramState`] with a jump table
+    /// Using an object that can be turned into a string, makes a [`State`] with a jump table
     pub fn from_string<S: Into<String>>(program: S) -> Self {
         Self {
             loop_num: 0,

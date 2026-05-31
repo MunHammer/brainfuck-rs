@@ -89,7 +89,6 @@ impl SourceProgram {
 }
 #[cfg(test)]
 mod tests {
-    use std::collections::VecDeque;
 
     use crate::interpreters::objects::{FakeInput, FakeOutput};
 

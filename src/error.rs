@@ -44,7 +44,7 @@ pub enum Error {
     /// E.G: a function expects a table & gets a stack
     JumpType,
 }
-/// A wrapper for Result<T, [`brainfuck_rs::Error`]>
+/// A wrapper for Result<T, [`Error`]>
 pub type Result<T> = std::result::Result<T, Error>;
 
 impl fmt::Display for Error {
