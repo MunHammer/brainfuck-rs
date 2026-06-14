@@ -1,12 +1,14 @@
 [package]
 name = "brainfuck-rs"
 version = "0.5.0"
-authors = ["Mun_Hammer"]
+authors = ["MunHammer <191528445+MunHammer@users.noreply.github.com>"]
 edition = "2024"
 description = "A brainfuck compiler & interpreter"
 readme = "README.md"
+repository = "https://github.com/MunHammer/brainfuck-rs/"
 license = "GPL-3.0-or-later"
 keywords = ["compiler", "interpreter", "CLI", "WIP"]
+categories = ["compilers", "command-line-utilities"]
 publish = false
 
 [dependencies]
