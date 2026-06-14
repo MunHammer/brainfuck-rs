@@ -1,13 +1,15 @@
 [package]
 name = "brainfuck-rs"
 version = "0.5.0"
+authors = ["MunHammer <191528445+MunHammer@users.noreply.github.com>"]
 edition = "2024"
-authors = ["Mun_Hammer"]
 description = "A brainfuck compiler & interpreter"
-keywords = ["compiler", "interpreter", "CLI", "WIP"]
-publish = false
-license = "GPL-3.0-or-later"
 readme = "README.md"
+repository = "https://github.com/MunHammer/brainfuck-rs/"
+license = "GPL-3.0-or-later"
+keywords = ["compiler", "interpreter", "CLI", "WIP"]
+categories = ["compilers", "command-line-utilities"]
+publish = false
 
 [dependencies]
 bitcode = { version = "0.5", features = ["derive"] }
@@ -21,6 +23,8 @@ default = ["cli"]
 interpret = ["dep:console"]
 repl = ["interpret", "dep:rustyline", "dep:directories"]
 cli = ["dep:clap", "repl", "dep:directories"]
+
+# lints
 
 [lints.clippy]
 cargo = {level = "warn", priority = -1}
