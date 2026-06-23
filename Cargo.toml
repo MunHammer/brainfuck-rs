@@ -34,3 +34,5 @@ multiple_crate_versions = {level = "allow", priority = 1}
 
 [lints.rust]
 missing_docs = "warn"
+# for code coverage ignoring
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage,coverage_nightly)'] }

@@ -8,6 +8,10 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+      - name: Use nightly for ignoring functions
+        run: |
+          rustup install nightly
+          rustup default set nightly
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov
       - name: Generate code coverage

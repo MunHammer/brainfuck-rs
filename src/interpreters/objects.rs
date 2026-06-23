@@ -196,6 +196,7 @@ impl State {
     /// Outputs the ascii value of the current cell
     /// # Errors
     /// Only if there is an I/O error
+    #[cfg_attr(coverage_nightly, coverage(off))]
     pub fn out(&self, times: usize) -> crate::Result<&Self> {
         self.out_inner(times, stdout())
     }
@@ -213,6 +214,7 @@ impl State {
     /// Takes input
     /// # Errors
     /// If there is an I/O error
+    #[cfg_attr(coverage_nightly, coverage(off))]
     pub fn inp(&mut self) -> crate::Result<&mut Self> {
         self.inp_inner(TermInput, stdout())
     }

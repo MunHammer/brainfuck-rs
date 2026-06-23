@@ -31,6 +31,7 @@ impl SourceProgram {
     /// Returns an error if:
     /// The pointer moves out of bounds
     /// `<`
+    #[cfg_attr(coverage_nightly, coverage(off))]
     pub fn interpret(&self) -> crate::Result<()> {
         self.interpret_inner(&TermInput, stdout())
     }
