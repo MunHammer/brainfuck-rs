@@ -97,7 +97,10 @@ mod tests {
     use rstest::rstest;
     #[rstest]
     #[case::null(".", vec![], &[0])]
-    fn interpretation(
+    #[case::lop("[].", vec![], &[0])]
+    // TODO: Rework the Jump table
+    // #[case::program("->>>+>+[>[-<++++>]<<+]>.", vec![], &[100])]
+    fn interpretation_output(
         #[case] program: &str,
         #[case] input: Vec<console::Key>,
         #[case] expected_output: &[u8],

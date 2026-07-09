@@ -72,7 +72,7 @@ pub enum Node {
 #[bitcode(recursive)]
 pub struct Block(pub Vec<Node>);
 /// A wrapper for a program
-#[derive(Encode, Decode, Default)]
+#[derive(Encode, Decode, Default, Debug)]
 pub struct SourceProgram(pub String);
 /// A stream of tokens, uses [`BaseOp`]
 #[derive(Debug, Encode, Decode, PartialEq)]

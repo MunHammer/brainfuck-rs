@@ -28,6 +28,7 @@ pub enum Jump {
     /// A stack of jumps, beter for smaller programs or REPLs
     Stack(Vec<usize>),
     /// A table of jumps, better for larger programs or for speed
+    // TODO: Rework the Jump table
     Table(Vec<(usize, usize)>),
 }
 
