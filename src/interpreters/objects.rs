@@ -217,14 +217,14 @@ impl State {
     /// If there is an I/O error
     #[cfg_attr(coverage_nightly, coverage(off))]
     pub fn inp(&mut self) -> crate::Result<&mut Self> {
-        self.inp_inner(TermInput, stdout())
+        self.inp_inner(&mut TermInput, stdout())
     }
     /// Takes input, with a trait, for testing
     /// # Errors
     /// If there is an I/O error
     pub(crate) fn inp_inner(
         &mut self,
-        mut read: impl Input,
+        read: &mut impl Input,
         mut write: impl Write,
     ) -> crate::Result<&mut Self> {
         let mut buf: [u8; 1] = [0];
@@ -298,9 +298,7 @@ impl FakeOutput {
 #[cfg(test)]
 impl Write for FakeOutput {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        dbg!(buf);
         for b in buf {
-            dbg!(b);
             self.0.push(*b);
         }
         Ok(buf.len())
@@ -325,7 +323,7 @@ mod tests {
             let mut state = State::new();
             let mut output = FakeOutput(Vec::new());
             state
-                .inp_inner(FakeInput(input.clone().into()), &mut output)
+                .inp_inner(&mut FakeInput(input.clone().into()), &mut output)
                 .unwrap();
             assert_eq!(
                 state.tape[state.ptr], expected,

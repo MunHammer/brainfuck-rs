@@ -33,7 +33,7 @@ impl SourceProgram {
     /// `<`
     #[cfg_attr(coverage_nightly, coverage(off))]
     pub fn interpret(&self) -> crate::Result<()> {
-        self.interpret_inner(&TermInput, stdout())
+        self.interpret_inner(TermInput, stdout())
     }
     /// Interprets the program's source
     /// # Errors
@@ -42,7 +42,7 @@ impl SourceProgram {
     /// `<`
     pub(crate) fn interpret_inner(
         &self,
-        input: &(impl Input + Clone),
+        mut input: impl Input,
         mut output: impl Write,
     ) -> crate::Result<()> {
         let mut state = State::from_string(self.0.clone());
@@ -52,6 +52,7 @@ impl SourceProgram {
         while state.pos < chars.len() {
             err_pos.1 += 1;
             c = chars[state.pos];
+            dbg!(c);
             match c {
                 '+' => {
                     state.add(1);
@@ -75,7 +76,7 @@ impl SourceProgram {
                     state.out_inner(1, &mut output)?;
                 }
                 ',' => {
-                    state.inp_inner(input.clone(), &mut output)?;
+                    state.inp_inner(&mut input, &mut output)?;
                 }
                 '\n' => {
                     err_pos.0 += 1;
@@ -94,12 +95,15 @@ mod tests {
     use crate::interpreters::objects::{FakeInput, FakeOutput};
 
     use super::*;
+    use console::Key;
     use rstest::rstest;
     #[rstest]
     #[case::null(".", vec![], &[0])]
     #[case::lop("[].", vec![], &[0])]
     // TODO: Rework the Jump table
     // #[case::program("->>>+>+[>[-<++++>]<<+]>.", vec![], &[100])]
+    #[case::input(",.", vec![Key::Char('a'), Key::Enter], b"aa")]
+    #[case::input_twice(",,..", vec![Key::Char('a'), Key::Enter, Key::Char('b'), Key::Enter, ], b"abbb")]
     fn interpretation_output(
         #[case] program: &str,
         #[case] input: Vec<console::Key>,
@@ -108,7 +112,7 @@ mod tests {
         let program = SourceProgram::new(String::from(program));
         let input = FakeInput(input.into());
         let mut output = FakeOutput(Vec::new());
-        program.interpret_inner(&input, &mut output).unwrap();
+        program.interpret_inner(input, &mut output).unwrap();
         assert_eq!(output.0, expected_output);
     }
 }
