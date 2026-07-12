@@ -23,7 +23,7 @@ use crate::compiler::front::{BaseOp, Block, Node, TokenStream};
 impl TokenStream {
     /// Parses the stream of tokens & turns it into an AST
     pub fn parse(&mut self) -> (Block, usize) {
-        let mut program = Block(Vec::new());
+        let mut program = Block::new(Vec::new());
         let mut tokens = self.0.iter();
         let mut times_drained = 0;
         while let Some(token) = tokens.next() {
@@ -49,5 +49,49 @@ impl TokenStream {
             });
         }
         (program, times_drained)
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::{Block, Node};
+    use rstest::rstest;
+    #[rstest]
+    #[case::add("+++", Block::new(vec![Node::Add; 3]))]
+    #[case::sub("---", Block::new(vec![Node::Sub; 3]))]
+    #[case::mvr(">>>", Block::new(vec![Node::Mvr; 3]))]
+    #[case::mvl("<<<", Block::new(vec![Node::Mvl; 3]))]
+    #[case::out("...", Block::new(vec![Node::Out; 3]))]
+    #[case::inp(",,,", Block::new(vec![Node::Inp; 3]))]
+    #[case::lop("[...]", Block::new(vec![Node::Lop(Block::new(vec![Node::Out; 3]))]))]
+    #[case::mixed(",+++++[>+++++<-]>.",
+            Block::new(vec![
+                Node::Inp,
+                Node::Add,
+                Node::Add,
+                Node::Add,
+                Node::Add,
+                Node::Add,
+                Node::Lop(Block::new(vec![
+                    Node::Mvr,
+                    Node::Add,
+                    Node::Add,
+                    Node::Add,
+                    Node::Add,
+                    Node::Add,
+                    Node::Mvl,
+                    Node::Sub,
+                ])),
+                Node::Mvr,
+                Node::Out,
+            ]))]
+    fn parsing(#[case] program: &str, #[case] expected: Block) {
+        let parsed = crate::compiler::SourceProgram::new(String::from(program))
+            .lex()
+            .parse()
+            .0;
+        assert_eq!(
+            parsed, expected,
+            "Parsed string {program} doesn't match expected output\nReceived output: {parsed:#?}\nExpected output: {expected:#?}"
+        );
     }
 }

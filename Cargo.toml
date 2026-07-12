@@ -18,6 +18,9 @@ console = { version = "0.16.2", optional = true }
 directories = { version = "6.0.0", optional = true }
 rustyline = { version = "17.0.2", optional = true }
 
+[dev-dependencies]
+rstest = "0.26.1"
+
 [features]
 default = ["cli"]
 interpret = ["dep:console"]
@@ -31,6 +34,9 @@ cargo = {level = "warn", priority = -1}
 pedantic = {level = "warn", priority = 0}
 large_stack_arrays = {level = "allow", priority = 1}
 too_many_lines = {level = "allow", priority = 1}
+multiple_crate_versions = {level = "allow", priority = 1}
 
 [lints.rust]
 missing_docs = "warn"
+# for code coverage ignoring
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage,coverage_nightly)'] }

@@ -21,10 +21,10 @@ see COPYING for the full license
 //! This file is for the lexical analysis of a program
 use crate::compiler::front::{BaseOp, SourceProgram, TokenStream};
 impl SourceProgram {
-    /// Turns the source program into a stream of tokens & removes standard starting comments
-    /// # Errors
-    /// If there is an unmatched `[` or `]`
-    pub fn lex(&self) -> crate::Result<TokenStream> {
+    /// Turns the source program into a stream of tokens
+    /// Also ignores all other lines
+    #[must_use]
+    pub fn lex(&self) -> TokenStream {
         let mut tokens: Vec<BaseOp> = Vec::new();
         // Tokenises valid chars
         for c in self.0.chars() {
@@ -41,12 +41,19 @@ impl SourceProgram {
                 _ => BaseOp::CharCount,
             });
         }
+        TokenStream(tokens)
+    }
+    /// Removes all starting comments from a `TokenStream`
+    /// # Errors
+    /// If the loops are ummatched
+    pub fn rm_comments(tokens: TokenStream) -> crate::Result<TokenStream> {
         // Removes comments like:
         /*
         [This is a brainfuck comment, you can put any char in here
         but the [] (loops) have to be matched like normal.]
         +++++
         */
+        let mut tokens = tokens.0;
         let mut pos: (usize, usize) = (0, 0);
         let mut last_start: (usize, usize) = (0, 0);
         while let BaseOp::Srt = tokens.first().unwrap_or(&BaseOp::Add) {
@@ -83,5 +90,50 @@ impl SourceProgram {
             }
         }
         Ok(TokenStream(tokens))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rstest::rstest;
+    #[rstest]
+    #[case::add("+++", vec!{BaseOp::Add; 3})]
+    #[case::sub("---", vec![BaseOp::Sub; 3])]
+    #[case::mvl("<<<", vec![BaseOp::Mvl; 3])]
+    #[case::mvr(">>>", vec![BaseOp::Mvr; 3])]
+    //
+    #[case::out("...", vec![BaseOp::Out; 3])]
+    #[case::inp(",,,", vec![BaseOp::Inp; 3])]
+    #[case::srt("[[[", vec![BaseOp::Srt; 3])]
+    #[case::end("]]]", vec![BaseOp::End; 3])]
+    #[case::mixed(",+++++[>+++++<-]>.",
+        vec![
+            BaseOp::Inp,
+            BaseOp::Add,
+            BaseOp::Add,
+            BaseOp::Add,
+            BaseOp::Add,
+            BaseOp::Add,
+            BaseOp::Srt,
+            BaseOp::Mvr,
+            BaseOp::Add,
+            BaseOp::Add,
+            BaseOp::Add,
+            BaseOp::Add,
+            BaseOp::Add,
+            BaseOp::Mvl,
+            BaseOp::Sub,
+            BaseOp::End,
+            BaseOp::Mvr,
+            BaseOp::Out,
+        ])]
+    fn lex(#[case] program: &str, #[case] expected: Vec<BaseOp>) {
+        let lexed = SourceProgram::new(String::from(program)).lex();
+        let manual = TokenStream::new(expected);
+        assert_eq!(
+            lexed, manual,
+            "Lexed string {program} doesn't match expected output\nRecieved output: {lexed:#?}\nExpected output: {manual:#?}"
+        );
     }
 }

@@ -22,7 +22,7 @@ see COPYING for the full license
 //! *also for the extra functions such as `::new` that just make life easier*
 use bitcode::{Decode, Encode};
 /// The base operation set, used in [`TokenStream`]
-#[derive(Clone, Encode, Decode)]
+#[derive(Debug, Clone, Encode, Decode, PartialEq)]
 pub enum BaseOp {
     /// The bf Add (**ADD** to current cell), equivalent to `+`
     Add,
@@ -46,7 +46,7 @@ pub enum BaseOp {
     NewLine,
 }
 /// The node for ASTs, used in [`Block`]
-#[derive(Debug, Encode, Decode)]
+#[derive(Debug, Encode, Decode, PartialEq, Clone)]
 pub enum Node {
     /// The bf Add (**ADD** to current cell), equivalent to `+`
     Add,
@@ -68,14 +68,14 @@ pub enum Node {
     NewLine,
 }
 /// A group of nodes for ASTs, uses the [`Node`]
-#[derive(Debug, Encode, Decode, Default)]
+#[derive(Debug, Encode, Decode, Default, PartialEq, Clone)]
 #[bitcode(recursive)]
 pub struct Block(pub Vec<Node>);
 /// A wrapper for a program
-#[derive(Encode, Decode, Default)]
+#[derive(Encode, Decode, Default, Debug)]
 pub struct SourceProgram(pub String);
 /// A stream of tokens, uses [`BaseOp`]
-#[derive(Encode, Decode)]
+#[derive(Debug, Encode, Decode, PartialEq)]
 pub struct TokenStream(pub Vec<BaseOp>);
 
 // The functions & stuff go here
@@ -115,5 +115,41 @@ impl SourceProgram {
     #[must_use]
     pub fn new(source: String) -> Self {
         Self(source)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rstest::rstest;
+    #[rstest]
+    fn block_push() {
+        let mut manual = Block::default();
+        for _ in 0..3 {
+            manual.push(Node::Add);
+        }
+        assert_eq!(
+            manual,
+            Block::new(vec![Node::Add; 3]),
+            "Failed to push {:#?} 3 times to {:#?}\nRecieved output: {manual:#?}\nExpected output: {:#?}",
+            Node::Add,
+            Block::default(),
+            Block::new(vec![Node::Add; 3]),
+        );
+    }
+    #[rstest]
+    fn stream_push() {
+        let mut manual = TokenStream::default();
+        for _ in 0..3 {
+            manual.push(BaseOp::Add);
+        }
+        assert_eq!(
+            manual,
+            TokenStream::new(vec![BaseOp::Add; 3],),
+            "Failed to push {:#?} 3 times to {:#?}\nRecieved output: {manual:#?}\nExpected output: {:#?}",
+            BaseOp::Add,
+            TokenStream::default(),
+            TokenStream::new(vec![BaseOp::Add; 3],),
+        );
     }
 }

@@ -78,7 +78,7 @@ mod cli {
         /// Optimised Bytecode
         ByteOptimised,
         /// LLVM IR
-        LLVM,
+        Llvm,
         /// Machine Code
         Machine,
         /// Optimised Machine Code
@@ -106,7 +106,7 @@ mod cli {
                 #[cfg(not(feature = "repl"))]
                 panic!("No valid command, Feature not inclded in compilation")
             }
-            Some(Commands::Run { input }) => {
+            Some(Commands::Run { input: _ }) => {
                 #[cfg(feature = "interpret")]
                 {
                     todo!();
@@ -130,7 +130,7 @@ mod cli {
                     });
                 }
                 let source = compiler::SourceProgram(fs::read_to_string(input).unwrap());
-                let mut source = source.lex().unwrap();
+                let mut source = source.lex();
                 if let Emit::Stream = emit {
                     let mut encoded = vec![1];
                     encoded.append(&mut bitcode::encode(&source).unwrap());

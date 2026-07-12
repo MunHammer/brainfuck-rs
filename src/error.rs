@@ -24,21 +24,13 @@ use rustyline::error::ReadlineError;
 use std::fmt;
 /// The standard brainfuck error type
 /// Has runtime & syntax errors
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Error {
     /// A standard IO error, just a wrapper for [`std::io::Error`]
-    IO(std::io::Error),
+    IO(std::io::ErrorKind),
     /// When something request for the program to stop
     Stop,
     /// When the pointer moves to a negative memory address that doesn't exist
-    /// Example:
-    /// ```rust
-    /// use brainfuck-rs::interpreters
-    /// fn main() {
-    ///     let state = interpreters::ProgramState::from_string("[-]+[>[-]+]");
-    ///     let error = compiler::SourceProgram::
-    /// }
-    /// ```
     NegativeAddress((usize, usize)),
     /// When the pointer moves to a memory address >= `30_000`
     /// Example:
@@ -52,7 +44,7 @@ pub enum Error {
     /// E.G: a function expects a table & gets a stack
     JumpType,
 }
-/// A wrapper for Result<T, [`brainfuck_rs::Error`]>
+/// A wrapper for Result<T, [`Error`]>
 pub type Result<T> = std::result::Result<T, Error>;
 
 impl fmt::Display for Error {
@@ -62,19 +54,23 @@ impl fmt::Display for Error {
             Self::NegativeAddress(pos) => {
                 write!(
                     f,
-                    "Pointer moved to a negative address at {} {}",
+                    "Pointer moved to a negative address at line {}, character {}",
                     pos.0, pos.1
                 )
             }
             Self::TooLargeAddress(pos) => {
                 write!(
                     f,
-                    "Pointer moved to a memory address >= 30_000 at {} {}",
+                    "Pointer moved to a memory address >= 30_000 at line {}, character {}",
                     pos.0, pos.1
                 )
             }
-            Self::UnmatchedStart(pos) => write!(f, "Unmatched [ at {} {}", pos.0, pos.1),
-            Self::UnmatchedEnd(pos) => write!(f, "Unmatched ] at {} {}", pos.0, pos.1),
+            Self::UnmatchedStart(pos) => {
+                write!(f, "Unmatched [ at line {}, character {}", pos.0, pos.1)
+            }
+            Self::UnmatchedEnd(pos) => {
+                write!(f, "Unmatched ] at line {}, character {}", pos.0, pos.1)
+            }
             Self::JumpType => write!(f, "Wrong Jump type"),
             Self::Stop => write!(f, "Program was requested to stop"),
         }
@@ -83,7 +79,7 @@ impl fmt::Display for Error {
 
 impl From<std::io::Error> for Error {
     fn from(error: std::io::Error) -> Self {
-        Error::IO(error)
+        Error::IO(error.kind())
     }
 }
 
@@ -92,12 +88,62 @@ impl From<ReadlineError> for Error {
     fn from(error: ReadlineError) -> Self {
         match error {
             ReadlineError::Io(io_err) => Error::from(io_err),
-            ReadlineError::Eof
-            | ReadlineError::Interrupted
-            | ReadlineError::Signal(rustyline::error::Signal::Interrupt) => Error::Stop,
+            ReadlineError::Eof | ReadlineError::Interrupted => Error::Stop,
+            #[cfg(unix)]
+            ReadlineError::Signal(rustyline::error::Signal::Interrupt) => Error::Stop,
             err => panic!(
                 "Unexpected error: {err} found, please notify your distributor of the program"
             ),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rstest::rstest;
+    const LINE: usize = 69;
+    const CHAR: usize = 420;
+    const POS: (usize, usize) = (LINE, CHAR);
+    #[rstest]
+    #[case::jump_type(Error::JumpType, "Wrong Jump type")]
+    // I don't know how I should test the `Error::Io`
+    // TODO: Implement testing for `Error::Io`
+    #[case::stop(Error::Stop, "Program was requested to stop")]
+    #[case::negative_address(Error::NegativeAddress(POS), &format!("Pointer moved to a negative address at line {LINE}, character {CHAR}"))]
+    #[case::too_large_address(Error::TooLargeAddress(POS), &format!("Pointer moved to a memory address >= 30_000 at line {LINE}, character {CHAR}"))]
+    #[case::unmatched_start(Error::UnmatchedStart(POS), &format!("Unmatched [ at line {LINE}, character {CHAR}"))]
+    #[case::unmatched_end(Error::UnmatchedEnd(POS), &format!("Unmatched ] at line {LINE}, character {CHAR}"))]
+    fn display(#[case] error: Error, #[case] expected: &str) {
+        assert_eq!(
+            format!("{error}"),
+            String::from(expected),
+            "Failed to write correct output\nRecieved output: {error:#?}\nExpected output: {expected:#?}"
+        );
+    }
+
+    #[rstest]
+    #[case(
+        crate::Error::IO(std::io::ErrorKind::NotFound),
+        std::io::Error::new(std::io::ErrorKind::NotFound, "")
+    )]
+    fn from_io(#[case] expected: crate::Error, #[case] error: std::io::Error) {
+        assert_eq!(expected, crate::Error::from(error));
+    }
+
+    #[cfg(feature = "repl")]
+    #[rstest]
+    #[case::io(
+        crate::Error::IO(std::io::ErrorKind::NotFound),
+        ReadlineError::Io(std::io::Error::from(std::io::ErrorKind::NotFound))
+    )]
+    #[case::stop(crate::Error::Stop, ReadlineError::Eof)]
+    #[should_panic = "Unexpected error: Signal(Resize) found, please notify your distributor of the program"]
+    #[case::unkown_error(
+        crate::Error::Stop,
+        ReadlineError::Signal(rustyline::error::Signal::Resize)
+    )]
+    fn from_rustyline(#[case] expected: crate::Error, #[case] error: ReadlineError) {
+        assert_eq!(expected, Error::from(error));
     }
 }
