@@ -22,41 +22,59 @@ see COPYING for the full license
 use console::{Key, Term};
 use std::io::{Write, stdout};
 
-/// An enum to decide if you use a jump table or a jump stack
+/// Trait for Jumps in a program
+pub trait Jump {
+    /// Starts the loop
+    /// # Notes for implementors
+    /// - Position is where the `[` is at
+    /// - This function should not consider whether the current cell is zero
+    fn srt(&mut self, position: usize);
+    /// Ends the loop
+    /// # Notes for implementors
+    /// - Position is where the `]` is at
+    /// - This function should not consider whether the current cell is zero
+    /// - Returned value should be where the program should jump to
+    fn end(&mut self, position: usize) -> Option<usize>;
+}
+
+/// A stack of jumps
 #[derive(Debug)]
-pub enum Jump {
-    /// A stack of jumps, beter for smaller programs or REPLs
-    Stack(Vec<usize>),
-    /// A table of jumps, better for larger programs or for speed
-    // TODO: Rework the Jump table
-    Table(Vec<(usize, usize)>),
+pub struct Stack(pub Vec<usize>);
+
+/// A table of jumps
+// TODO: Change this, so it actually does stuff properly
+#[derive(Debug)]
+pub struct Table(Vec<(usize, usize)>);
+impl Jump for Table {
+    fn srt(&mut self, position: usize) {
+        todo!()
+    }
+    fn end(&mut self, position: usize) -> Option<usize> {
+        todo!()
+    }
+}
+
+impl Jump for Stack {
+    fn srt(&mut self, position: usize) {
+        self.0.push(position);
+    }
+    #[allow(unused_variables)]
+    fn end(&mut self, position: usize) -> Option<usize> {
+        self.0.pop()
+    }
 }
 
 /// A state of a given program
 #[derive(Debug)]
-pub struct State {
+pub struct State<T: Jump> {
     /// The program's tape, in which all of the cells are stored
     pub tape: [u8; 30_000],
     /// The pointer to the tape's cell, with which most cell manipulation commmands will be executed on
     pub ptr: usize,
     /// The position in the program that the interpreter is at
     pub pos: usize,
-    // TODO: put this in the `Jump` enum
-    /// The depth at which the jump stack is at
-    pub loop_num: usize,
     /// The stack or table of jumps
-    pub jumps: Jump,
-}
-impl Jump {
-    /// Gets the tuple of the table at the pos position
-    /// # Errors
-    /// If the [`Jump`] isn't a [`Jump::Table`]
-    pub fn table_pos(&self, pos: usize) -> crate::Result<(usize, usize)> {
-        if let Self::Table(table) = self {
-            return Ok(table[pos]);
-        }
-        Err(crate::Error::JumpType)
-    }
+    pub jumps: T,
 }
 
 // This trait is for testing methods that use stdin
@@ -73,7 +91,7 @@ impl Input for TermInput {
     }
 }
 
-impl State {
+impl State<Stack> {
     /// Creates a new instance of the [`State`] struct, with [`Jump::Stack`]
     #[must_use]
     pub fn new() -> Self {
@@ -81,14 +99,14 @@ impl State {
             tape: [0; 30_000],
             ptr: 0,
             pos: 0,
-            loop_num: 0,
-            jumps: Jump::Stack(Vec::new()),
+            jumps: Stack(Vec::new()),
         }
     }
+}
+impl State<Table> {
     /// Using an object that can be turned into a string, makes a [`State`] with a jump table
     pub fn from_string<S: Into<String>>(program: S) -> Self {
         Self {
-            loop_num: 0,
             tape: [0; 30_000],
             pos: 0,
             ptr: 0,
@@ -108,10 +126,12 @@ impl State {
                         _ => (),
                     }
                 }
-                Jump::Table(jump_table)
+                Table(jump_table)
             },
         }
     }
+}
+impl<T: Jump> State<T> {
     /// Adds to the current cell
     pub fn add(&mut self, amount: u8) -> &mut Self {
         self.tape[self.ptr] = self.tape[self.ptr].wrapping_add(amount);
@@ -149,47 +169,25 @@ impl State {
     ///
     pub fn srt(&mut self, times: usize) -> &mut Self {
         for _ in 0..times {
-            match &mut self.jumps {
-                Jump::Table(_) => {
-                    if self.tape[self.ptr] == 0 {
-                        self.pos = match self.jumps.table_pos(self.loop_num) {
-                            Ok(val) => val,
-                            Err(err) => unreachable!("Error {err} shouldn't be come across, as Jump::table_pos only panics when the jump isn't a Jump::Table, which has already be checked for"),
-                        }
-                        .1;
-                    }
-                    self.loop_num += 1;
-                }
-                Jump::Stack(stack) => stack.push(self.pos),
+            if self.tape[self.ptr] != 0 {
+                self.jumps.srt(self.pos);
+                self.pos += 1;
             }
+            // TODO: Add a skippage of stuff
         }
         self
     }
     /// Ends a loop
     /// # Errors
-    /// If an unmatched end is detected, only found if the `State` is using `Jump::State`
+    /// If an unmatched end is detected
     pub fn end(&mut self, times: usize, x: usize, y: usize) -> crate::Result<&mut Self> {
         for _ in 0..times {
-            match &mut self.jumps {
-                Jump::Table(_) => {
-                    if self.tape[self.ptr] != 0 {
-                        self.pos = match self.jumps.table_pos(self.loop_num) {
-                            Ok(val) => val,
-                            Err(err) => unreachable!("Error {err} shouldn't be come across, as Jump::table_pos only panics when the jump isn't a Jump::Table, which has already be checked for"),
-                        }.0 - 1;
-                    }
-                    self.loop_num -= 1;
-                }
-                Jump::Stack(stack) => {
-                    if self.tape[self.ptr] != 0 {
-                        self.pos = if let Some(val) = stack.last() {
-                            *val
-                        } else {
-                            return Err(crate::Error::UnmatchedEnd((x, y)));
-                        }
-                    }
-                    stack.pop();
-                }
+            if self.tape[self.ptr] != 0 {
+                self.pos = self
+                    .jumps
+                    .end(self.pos)
+                    .ok_or(crate::Error::UnmatchedEnd((x, y)))?;
+                self.pos += 1;
             }
         }
         Ok(self)
@@ -206,7 +204,6 @@ impl State {
     /// Only if there is an I/O error
     pub(crate) fn out_inner(&self, times: usize, mut write: impl Write) -> crate::Result<&Self> {
         for _ in 0..times {
-            dbg!(self.tape[self.ptr]);
             let _ = write.write(&[self.tape[self.ptr]])?;
             write.flush()?;
         }
@@ -269,7 +266,7 @@ impl State {
     }
 }
 
-impl Default for State {
+impl Default for State<Stack> {
     fn default() -> Self {
         Self::new()
     }
@@ -413,15 +410,11 @@ mod tests {
         #[case::program(">-[++++[<]>->+]<", vec![(2, 14), (7, 9)])]
         fn lop_table(#[case] program: &str, #[case] expected: Vec<(usize, usize)>) {
             let state = State::from_string(program);
-            if let Jump::Table(table) = state.jumps {
-                assert_eq!(table, expected);
-            } else {
-                unreachable!();
-            }
+            assert_eq!(state.jumps.0, expected);
         }
         #[rstest]
-        #[case::empty("[", &[0])]
-        #[case::basic("[.", &[0])]
+        #[case::empty("+[", &[1])]
+        #[case::basic("+[.", &[1])]
         #[case::program(">-[++++[<>->+<", &[2, 7])]
         fn lop_stack(#[case] program: &str, #[case] expected_stack: &[usize]) {
             let mut state = State::new();
@@ -450,14 +443,7 @@ mod tests {
                 }
                 state.pos += 1;
             }
-            assert_eq!(
-                if let Jump::Stack(stack) = state.jumps {
-                    stack
-                } else {
-                    unreachable!()
-                },
-                Vec::from(expected_stack)
-            );
+            assert_eq!(state.jumps.0, Vec::from(expected_stack));
         }
     }
 }
