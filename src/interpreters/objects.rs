@@ -44,14 +44,9 @@ pub struct Stack(pub Vec<usize>);
 /// A table of jumps
 // TODO: Change this, so it actually does stuff properly
 #[derive(Debug)]
-pub struct Table(Vec<(usize, usize)>);
-impl Jump for Table {
-    fn srt(&mut self, position: usize) {
-        todo!()
-    }
-    fn end(&mut self, position: usize) -> Option<usize> {
-        todo!()
-    }
+pub struct Table {
+    starts: Vec<usize>,
+    ends: Vec<usize>,
 }
 
 impl Jump for Stack {
@@ -61,6 +56,48 @@ impl Jump for Stack {
     #[allow(unused_variables)]
     fn end(&mut self, position: usize) -> Option<usize> {
         self.0.pop()
+    }
+}
+
+impl Jump for Table {
+    fn srt(&mut self, _: usize) {}
+    fn end(&mut self, position: usize) -> Option<usize> {
+        let mut i: usize = 0;
+        self.ends.iter().enumerate().find(|(i_inner, x)| {
+            if **x == position {
+                i = *i_inner;
+                true
+            } else {
+                false
+            }
+        })?;
+        Some(self.starts[i])
+    }
+}
+
+impl Table {
+    #[must_use]
+    fn new(program: &str) -> Self {
+        let mut out = Self {
+            starts: Vec::new(),
+            ends: Vec::new(),
+        };
+        let mut stack: Vec<usize> = Vec::new();
+        for (i, c) in program.chars().enumerate() {
+            match c {
+                '[' => stack.push(i),
+                ']' => {
+                    if let Some(val) = stack.pop() {
+                        out.starts.push(val);
+                        out.ends.push(i);
+                    } else {
+                        todo!()
+                    }
+                }
+                _ => (),
+            }
+        }
+        out
     }
 }
 
@@ -105,29 +142,13 @@ impl State<Stack> {
 }
 impl State<Table> {
     /// Using an object that can be turned into a string, makes a [`State`] with a jump table
-    pub fn from_string<S: Into<String>>(program: S) -> Self {
+    #[must_use]
+    pub fn from_string(program: &str) -> Self {
         Self {
             tape: [0; 30_000],
             pos: 0,
             ptr: 0,
-            jumps: {
-                let mut jump_table: Vec<(usize, usize)> = Vec::new();
-                let mut loop_num: usize = usize::MAX;
-                for (num, op) in program.into().chars().enumerate() {
-                    match op {
-                        '[' => {
-                            loop_num = loop_num.wrapping_add(1);
-                            jump_table.push((num, 0));
-                        }
-                        ']' => {
-                            jump_table[loop_num].1 = num;
-                            loop_num = loop_num.wrapping_sub(1);
-                        }
-                        _ => (),
-                    }
-                }
-                Table(jump_table)
-            },
+            jumps: Table::new(program),
         }
     }
 }
@@ -405,12 +426,37 @@ mod tests {
         }
 
         #[rstest]
-        #[case::empty("[]", vec![(0, 1)])]
-        #[case::basic("[.]", vec![(0, 2)])]
-        #[case::program(">-[++++[<]>->+]<", vec![(2, 14), (7, 9)])]
-        fn lop_table(#[case] program: &str, #[case] expected: Vec<(usize, usize)>) {
+        #[case::empty("[]", vec![0], vec![1])]
+        #[case::basic("[.]", vec![0], vec![2])]
+        #[case::program(">-[++++[<]>->+]<", vec![2, 7], vec![14, 9])]
+        fn lop_table(
+            #[case] program: &str,
+            #[case] expected_starts: Vec<usize>,
+            #[case] expected_ends: Vec<usize>,
+        ) {
             let state = State::from_string(program);
-            assert_eq!(state.jumps.0, expected);
+            let mut starts_iter = state.jumps.starts.iter();
+            let mut ends_iter = state.jumps.ends.iter();
+            while let Some(start) = starts_iter.next()
+                && let Some(end) = ends_iter.next()
+            {
+                if let Some(start_i) = expected_starts.iter().position(|s| *s == *start)
+                    && let Some(end_i) = expected_ends.iter().position(|s| *s == *end)
+                {
+                    if start_i == end_i {
+                    } else {
+                        panic!(
+                            "state.jumps: `{:#?}` has the value, but not in the right place",
+                            state.jumps
+                        )
+                    }
+                } else {
+                    panic!(
+                        "state.jumps: `{:#?}` doesn't have a value of expected_start: {:#?} or expected_end: {:#?}",
+                        state.jumps, expected_starts, expected_ends,
+                    )
+                }
+            }
         }
         #[rstest]
         #[case::empty("+[", &[1])]
