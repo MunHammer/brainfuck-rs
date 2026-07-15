@@ -129,7 +129,7 @@ impl Input for TermInput {
 }
 
 impl State<Stack> {
-    /// Creates a new instance of the [`State`] struct, with [`Jump::Stack`]
+    /// Creates a new instance of the [`State`] struct, with [`Stack`]
     #[must_use]
     pub fn new() -> Self {
         Self {
