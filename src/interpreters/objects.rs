@@ -23,7 +23,7 @@ use console::{Key, Term};
 use std::io::{Write, stdout};
 
 /// Trait for Jumps in a program
-pub trait Jump {
+pub trait Jump: Clone {
     /// Starts the loop
     /// # Notes for implementors
     /// - Position is where the `[` is at
@@ -38,12 +38,12 @@ pub trait Jump {
 }
 
 /// A stack of jumps
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Stack(pub Vec<usize>);
 
 /// A table of jumps
 // TODO: Change this, so it actually does stuff properly
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Table {
     starts: Vec<usize>,
     ends: Vec<usize>,
@@ -139,6 +139,20 @@ impl State<Stack> {
             jumps: Stack(Vec::new()),
         }
     }
+    /// Resets the State, and provides the previous state
+    pub fn reset(&mut self) -> Self {
+        let former = Self {
+            tape: self.tape,
+            ptr: self.ptr,
+            pos: self.pos,
+            jumps: self.jumps.clone(),
+        };
+        self.tape = [0; 30_000];
+        self.ptr = 0;
+        self.pos = 0;
+        self.jumps = Stack(Vec::new());
+        former
+    }
 }
 impl State<Table> {
     /// Using an object that can be turned into a string, makes a [`State`] with a jump table
@@ -150,6 +164,20 @@ impl State<Table> {
             ptr: 0,
             jumps: Table::new(program),
         }
+    }
+    /// Resets the State, and provides the previous state
+    pub fn reset(&mut self, program: &str) -> Self {
+        let former = Self {
+            tape: self.tape,
+            ptr: self.ptr,
+            pos: self.pos,
+            jumps: self.jumps.clone(),
+        };
+        self.tape = [0; 30_000];
+        self.ptr = 0;
+        self.pos = 0;
+        self.jumps = Table::new(program);
+        former
     }
 }
 impl<T: Jump> State<T> {

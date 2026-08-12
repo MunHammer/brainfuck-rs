@@ -19,6 +19,7 @@ along with brainfuck-rs.  If not, see <https://www.gnu.org/licenses/>.
 see COPYING for the full license
 */
 #![cfg(feature = "repl")]
+use crate::interpreters::State;
 use rustyline::{
     Editor, Helper, Result,
     completion::Completer,
@@ -30,10 +31,35 @@ use rustyline::{
 pub fn repl() -> Result<()> {
     let mut rl: Editor<BrainfuckReplHelper, DefaultHistory> = Editor::new()?;
     rl.set_helper(Some(BrainfuckReplHelper));
+    let mut state = State::new();
+    println!(
+        "brainfuck-rs  Copyright (C) 2026  Mun_Hammer\nThis program comes with ABSOLUTELY NO WARRANTY; for details type `show w'.\nThis is free software, and you are welcome to redistribute it\nunder certain conditions; type `show c' for details."
+    );
+
+    println!("\nEnter \"Help\" for help");
     loop {
         let readline = rl.readline(">>> ");
         match readline {
             Ok(line) => {
+                match parse_command(&line) {
+                    None => (),
+                    Some(command) => match command {
+                        Command::ShowC => {
+                            println!("Please refer to https://github.com/MunHammer/brainfuck-rs/6")
+                        }
+                        Command::ShowW => println!(
+                            "This program is distributed in the hope that it will be useful,\nbut WITHOUT ANY WARRANTY; without even the implied warranty of\nMERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\nGNU General Public License for more details."
+                        ),
+                        Command::Reset => {
+                            state.reset();
+                            println!("The state has been reset")
+                        }
+                        Command::Help => println!(
+                            "Commands:\nshow c - might show copyright information (i don't know)\nshow w - shows warranty\nreset - resets the state\nhelp - shows this message\nquit - quits the program"
+                        ),
+                        Command::Quit => break,
+                    },
+                }
                 // TODO: main repl logic
             }
             Err(error) => {
@@ -44,6 +70,40 @@ pub fn repl() -> Result<()> {
     }
     Ok(())
 }
+
+fn parse_command(input: &str) -> Option<Command> {
+    let input = input.trim();
+    if input.contains("+")
+        || input.contains("-")
+        || input.contains("[")
+        || input.contains("]")
+        || input.contains("<")
+        || input.contains(">")
+    {
+        None
+    } else if input.contains("show c") {
+        Some(Command::ShowC)
+    } else if input.contains("show w") {
+        Some(Command::ShowW)
+    } else if input.contains("reset") || input.contains("clear") {
+        Some(Command::Reset)
+    } else if input.contains("quit") || input.contains("exit") || input.contains(":q") {
+        Some(Command::Quit)
+    } else if input.contains("help") {
+        Some(Command::Help)
+    } else {
+        None
+    }
+}
+
+enum Command {
+    ShowC,
+    ShowW,
+    Reset,
+    Quit,
+    Help,
+}
+
 struct BrainfuckReplHelper;
 
 struct BrainfuckReplCompleter;
