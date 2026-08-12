@@ -102,7 +102,8 @@ mod cli {
         match cli.command.clone() {
             None => {
                 #[cfg(feature = "repl")]
-                interpreters::repl()?;
+                interpreters::repl::repl().unwrap();
+                // interpreters::repl()?;
                 #[cfg(not(feature = "repl"))]
                 panic!("No valid command, Feature not inclded in compilation")
             }

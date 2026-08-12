@@ -23,6 +23,8 @@ see COPYING for the full license
 
 pub mod objects;
 pub mod raw;
+#[cfg(feature = "repl")]
+pub mod repl;
 
 pub use objects::{Jump, State};
 
