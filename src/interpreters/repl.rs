@@ -231,6 +231,18 @@ impl Hinter for BrainfuckReplHinter {
 
 impl Highlighter for BrainfuckReplHighlighter {
     fn highlight<'l>(&self, line: &'l str, pos: usize) -> std::borrow::Cow<'l, str> {
+        if [
+            "show c", "show w", "reset", "clear", "quit", "exit", ":q", "help",
+        ]
+        .iter()
+        .any(|command| line.trim() == *command)
+        {
+            let mut output = String::new();
+            output.push_str("\x1b[97m");
+            output.push_str(line);
+            output.push_str("\x1b[0m");
+            return std::borrow::Cow::Owned(output);
+        }
         let _ = pos;
         let mut output = String::new();
         for c in line.chars() {
@@ -257,13 +269,11 @@ impl Highlighter for BrainfuckReplHighlighter {
     fn highlight_hint<'h>(&self, hint: &'h str) -> std::borrow::Cow<'h, str> {
         std::borrow::Cow::Owned(format!("\x1b[2m{hint}\x1b[0m"))
     }
+    // "show c", "show w", "reset", "clear", "quit", "exit", ":q", "help",
     fn highlight_char(&self, line: &str, pos: usize, kind: rustyline::highlight::CmdKind) -> bool {
         match line.chars().nth(pos.saturating_sub(1)) {
             None => false,
-            Some(c) => match c {
-                '[' | ']' | '+' | '-' | '<' | '>' => true,
-                _ => false,
-            },
+            Some(c) => "[]+-<>cwtrqp".chars().any(|char| char == c),
         }
     }
 }
