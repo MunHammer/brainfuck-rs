@@ -100,7 +100,7 @@ mod tests {
     )]
     fn from_io(#[case] expected: crate::Error, #[case] error: io::Error) {
         assert_eq!(
-            format!("{:#?}", expected),
+            format!("{expected:#?}"),
             format!("{:#?}", crate::Error::from(error))
         );
     }
@@ -118,7 +118,7 @@ mod tests {
     )]
     fn from_rustyline(#[case] expected: crate::Error, #[case] error: ReadlineError) {
         assert_eq!(
-            format!("{:#?}", expected),
+            format!("{expected:#?}"),
             format!("{:#?}", crate::Error::from(error))
         );
     }
