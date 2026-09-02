@@ -74,7 +74,6 @@ impl From<ReadlineError> for Error {
 mod tests {
     use super::*;
     use rstest::rstest;
-    use std::error;
     const LINE: usize = 69;
     const CHAR: usize = 420;
     #[rstest]
