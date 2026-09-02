@@ -21,6 +21,7 @@ see COPYING for the full license
 //! The errors for this crate
 #[cfg(feature = "repl")]
 use rustyline::error::ReadlineError;
+use std::io;
 use thiserror::Error;
 /// The standard brainfuck error type
 /// Has runtime & syntax errors
@@ -28,7 +29,7 @@ use thiserror::Error;
 pub enum Error {
     /// A standard IO error, just a wrapper for [`std::io::Error`]
     #[error("mischellaneous I/O error")]
-    Io(#[from] std::io::Error),
+    Io(#[from] io::Error),
     /// When something request for the program to stop
     #[error("program was requested to stop")]
     Stop,
@@ -73,18 +74,18 @@ impl From<ReadlineError> for Error {
 mod tests {
     use super::*;
     use rstest::rstest;
+    use std::error;
     const LINE: usize = 69;
     const CHAR: usize = 420;
-    const POS: (usize, usize) = (LINE, CHAR);
     #[rstest]
-    #[case::jump_type(Error::JumpType, "Wrong Jump type")]
+    #[case::jump_type(Error::JumpType, "wrong type of Jump was used")]
     // I don't know how I should test the `Error::Io`
     // TODO: Implement testing for `Error::Io`
-    #[case::stop(Error::Stop, "Program was requested to stop")]
-    #[case::negative_address(Error::NegativeAddress(POS), &format!("Pointer moved to a negative address at line {LINE}, character {CHAR}"))]
-    #[case::too_large_address(Error::TooLargeAddress(POS), &format!("Pointer moved to a memory address >= 30_000 at line {LINE}, character {CHAR}"))]
-    #[case::unmatched_start(Error::UnmatchedStart(POS), &format!("Unmatched [ at line {LINE}, character {CHAR}"))]
-    #[case::unmatched_end(Error::UnmatchedEnd(POS), &format!("Unmatched ] at line {LINE}, character {CHAR}"))]
+    #[case::stop(Error::Stop, "program was requested to stop")]
+    #[case::negative_address(Error::NegativeAddress(LINE, CHAR), &format!("pointer moved to a negative address at line {LINE}, character {CHAR}"))]
+    #[case::too_large_address(Error::TooLargeAddress(LINE, CHAR), &format!("pointer moved to a memory address >= 30_000 at line {LINE}, character {CHAR}"))]
+    #[case::unmatched_start(Error::UnmatchedStart(LINE, CHAR), &format!("unmatched [ at line {LINE}, character {CHAR}"))]
+    #[case::unmatched_end(Error::UnmatchedEnd(LINE, CHAR), &format!("unmatched ] at line {LINE}, character {CHAR}"))]
     fn display(#[case] error: Error, #[case] expected: &str) {
         assert_eq!(
             format!("{error}"),
@@ -95,17 +96,19 @@ mod tests {
 
     #[rstest]
     #[case(
-        crate::Error::IO(std::io::ErrorKind::NotFound),
-        std::io::Error::new(std::io::ErrorKind::NotFound, "")
+        crate::Error::Io(io::Error::from(io::ErrorKind::NotFound)),
+        io::Error::from(io::ErrorKind::NotFound)
     )]
-    fn from_io(#[case] expected: crate::Error, #[case] error: std::io::Error) {
-        assert_eq!(expected, crate::Error::from(error));
+    fn from_io(#[case] expected: crate::Error, #[case] error: io::Error) {
+        assert_eq!(
+            format!("{:#?}", expected),
+            format!("{:#?}", crate::Error::from(error))
+        );
     }
-
     #[cfg(feature = "repl")]
     #[rstest]
     #[case::io(
-        crate::Error::IO(std::io::ErrorKind::NotFound),
+        crate::Error::Io(std::io::Error::from(std::io::ErrorKind::NotFound)),
         ReadlineError::Io(std::io::Error::from(std::io::ErrorKind::NotFound))
     )]
     #[case::stop(crate::Error::Stop, ReadlineError::Eof)]
@@ -115,6 +118,9 @@ mod tests {
         ReadlineError::Signal(rustyline::error::Signal::Resize)
     )]
     fn from_rustyline(#[case] expected: crate::Error, #[case] error: ReadlineError) {
-        assert_eq!(expected, Error::from(error));
+        assert_eq!(
+            format!("{:#?}", expected),
+            format!("{:#?}", crate::Error::from(error))
+        );
     }
 }
