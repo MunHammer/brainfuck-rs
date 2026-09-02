@@ -21,67 +21,39 @@ see COPYING for the full license
 //! The errors for this crate
 #[cfg(feature = "repl")]
 use rustyline::error::ReadlineError;
-use std::fmt;
+use std::io;
+use thiserror::Error;
 /// The standard brainfuck error type
 /// Has runtime & syntax errors
-#[derive(Debug, PartialEq)]
+#[derive(Error, Debug)]
 pub enum Error {
     /// A standard IO error, just a wrapper for [`std::io::Error`]
-    IO(std::io::ErrorKind),
+    #[error("mischellaneous I/O error")]
+    Io(#[from] io::Error),
     /// When something request for the program to stop
+    #[error("program was requested to stop")]
     Stop,
     /// When the pointer moves to a negative memory address that doesn't exist
-    NegativeAddress((usize, usize)),
+    #[error("pointer moved to a negative address at line {0}, character {1}")]
+    NegativeAddress(usize, usize),
     /// When the pointer moves to a memory address >= `30_000`
     /// Example:
     /// `[-]+[[-]>[-]+]`
-    TooLargeAddress((usize, usize)),
+    #[error("pointer moved to a memory address >= 30_000 at line {0}, character {1}")]
+    TooLargeAddress(usize, usize),
     /// When a [ is unmatched
-    UnmatchedStart((usize, usize)),
+    #[error("unmatched [ at line {0}, character {1}")]
+    UnmatchedStart(usize, usize),
     /// When a ] is unmatched
-    UnmatchedEnd((usize, usize)),
+    #[error("unmatched ] at line {0}, character {1}")]
+    UnmatchedEnd(usize, usize),
     /// When something uses the wrong [`crate::interpreters::Jump`] type
     /// E.G: a function expects a table & gets a stack
+    #[error("wrong type of Jump was used")]
     JumpType,
 }
 /// A wrapper for Result<T, [`Error`]>
 pub type Result<T> = std::result::Result<T, Error>;
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Self::IO(err) => write!(f, "{err}"),
-            Self::NegativeAddress(pos) => {
-                write!(
-                    f,
-                    "Pointer moved to a negative address at line {}, character {}",
-                    pos.0, pos.1
-                )
-            }
-            Self::TooLargeAddress(pos) => {
-                write!(
-                    f,
-                    "Pointer moved to a memory address >= 30_000 at line {}, character {}",
-                    pos.0, pos.1
-                )
-            }
-            Self::UnmatchedStart(pos) => {
-                write!(f, "Unmatched [ at line {}, character {}", pos.0, pos.1)
-            }
-            Self::UnmatchedEnd(pos) => {
-                write!(f, "Unmatched ] at line {}, character {}", pos.0, pos.1)
-            }
-            Self::JumpType => write!(f, "Wrong Jump type"),
-            Self::Stop => write!(f, "Program was requested to stop"),
-        }
-    }
-}
-
-impl From<std::io::Error> for Error {
-    fn from(error: std::io::Error) -> Self {
-        Error::IO(error.kind())
-    }
-}
 
 #[cfg(feature = "repl")]
 impl From<ReadlineError> for Error {
@@ -104,16 +76,15 @@ mod tests {
     use rstest::rstest;
     const LINE: usize = 69;
     const CHAR: usize = 420;
-    const POS: (usize, usize) = (LINE, CHAR);
     #[rstest]
-    #[case::jump_type(Error::JumpType, "Wrong Jump type")]
+    #[case::jump_type(Error::JumpType, "wrong type of Jump was used")]
     // I don't know how I should test the `Error::Io`
     // TODO: Implement testing for `Error::Io`
-    #[case::stop(Error::Stop, "Program was requested to stop")]
-    #[case::negative_address(Error::NegativeAddress(POS), &format!("Pointer moved to a negative address at line {LINE}, character {CHAR}"))]
-    #[case::too_large_address(Error::TooLargeAddress(POS), &format!("Pointer moved to a memory address >= 30_000 at line {LINE}, character {CHAR}"))]
-    #[case::unmatched_start(Error::UnmatchedStart(POS), &format!("Unmatched [ at line {LINE}, character {CHAR}"))]
-    #[case::unmatched_end(Error::UnmatchedEnd(POS), &format!("Unmatched ] at line {LINE}, character {CHAR}"))]
+    #[case::stop(Error::Stop, "program was requested to stop")]
+    #[case::negative_address(Error::NegativeAddress(LINE, CHAR), &format!("pointer moved to a negative address at line {LINE}, character {CHAR}"))]
+    #[case::too_large_address(Error::TooLargeAddress(LINE, CHAR), &format!("pointer moved to a memory address >= 30_000 at line {LINE}, character {CHAR}"))]
+    #[case::unmatched_start(Error::UnmatchedStart(LINE, CHAR), &format!("unmatched [ at line {LINE}, character {CHAR}"))]
+    #[case::unmatched_end(Error::UnmatchedEnd(LINE, CHAR), &format!("unmatched ] at line {LINE}, character {CHAR}"))]
     fn display(#[case] error: Error, #[case] expected: &str) {
         assert_eq!(
             format!("{error}"),
@@ -124,17 +95,19 @@ mod tests {
 
     #[rstest]
     #[case(
-        crate::Error::IO(std::io::ErrorKind::NotFound),
-        std::io::Error::new(std::io::ErrorKind::NotFound, "")
+        crate::Error::Io(io::Error::from(io::ErrorKind::NotFound)),
+        io::Error::from(io::ErrorKind::NotFound)
     )]
-    fn from_io(#[case] expected: crate::Error, #[case] error: std::io::Error) {
-        assert_eq!(expected, crate::Error::from(error));
+    fn from_io(#[case] expected: crate::Error, #[case] error: io::Error) {
+        assert_eq!(
+            format!("{:#?}", expected),
+            format!("{:#?}", crate::Error::from(error))
+        );
     }
-
     #[cfg(feature = "repl")]
     #[rstest]
     #[case::io(
-        crate::Error::IO(std::io::ErrorKind::NotFound),
+        crate::Error::Io(std::io::Error::from(std::io::ErrorKind::NotFound)),
         ReadlineError::Io(std::io::Error::from(std::io::ErrorKind::NotFound))
     )]
     #[case::stop(crate::Error::Stop, ReadlineError::Eof)]
@@ -144,6 +117,9 @@ mod tests {
         ReadlineError::Signal(rustyline::error::Signal::Resize)
     )]
     fn from_rustyline(#[case] expected: crate::Error, #[case] error: ReadlineError) {
-        assert_eq!(expected, Error::from(error));
+        assert_eq!(
+            format!("{:#?}", expected),
+            format!("{:#?}", crate::Error::from(error))
+        );
     }
 }

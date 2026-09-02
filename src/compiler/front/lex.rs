@@ -66,7 +66,7 @@ impl SourceProgram {
                     }
                     BaseOp::End => {
                         if depth == 0 {
-                            return Err(crate::Error::UnmatchedEnd(pos));
+                            return Err(crate::Error::UnmatchedEnd(pos.0, pos.1));
                         }
                         depth -= 1;
                     }
@@ -86,7 +86,7 @@ impl SourceProgram {
                 }
             }
             if depth != 0 {
-                return Err(crate::Error::UnmatchedStart(last_start));
+                return Err(crate::Error::UnmatchedStart(last_start.0, last_start.1));
             }
         }
         Ok(TokenStream(tokens))
