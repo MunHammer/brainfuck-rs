@@ -21,67 +21,38 @@ see COPYING for the full license
 //! The errors for this crate
 #[cfg(feature = "repl")]
 use rustyline::error::ReadlineError;
-use std::fmt;
+use thiserror::Error;
 /// The standard brainfuck error type
 /// Has runtime & syntax errors
-#[derive(Debug, PartialEq)]
+#[derive(Error, Debug)]
 pub enum Error {
     /// A standard IO error, just a wrapper for [`std::io::Error`]
-    IO(std::io::ErrorKind),
+    #[error("mischellaneous I/O error")]
+    Io(#[from] std::io::Error),
     /// When something request for the program to stop
+    #[error("program was requested to stop")]
     Stop,
     /// When the pointer moves to a negative memory address that doesn't exist
-    NegativeAddress((usize, usize)),
+    #[error("pointer moved to a negative address at line {0}, character {1}")]
+    NegativeAddress(usize, usize),
     /// When the pointer moves to a memory address >= `30_000`
     /// Example:
     /// `[-]+[[-]>[-]+]`
-    TooLargeAddress((usize, usize)),
+    #[error("pointer moved to a memory address >= 30_000 at line {0}, character {1}")]
+    TooLargeAddress(usize, usize),
     /// When a [ is unmatched
-    UnmatchedStart((usize, usize)),
+    #[error("unmatched [ at line {0}, character {1}")]
+    UnmatchedStart(usize, usize),
     /// When a ] is unmatched
-    UnmatchedEnd((usize, usize)),
+    #[error("unmatched ] at line {0}, character {1}")]
+    UnmatchedEnd(usize, usize),
     /// When something uses the wrong [`crate::interpreters::Jump`] type
     /// E.G: a function expects a table & gets a stack
+    #[error("wrong type of Jump was used")]
     JumpType,
 }
 /// A wrapper for Result<T, [`Error`]>
 pub type Result<T> = std::result::Result<T, Error>;
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Self::IO(err) => write!(f, "{err}"),
-            Self::NegativeAddress(pos) => {
-                write!(
-                    f,
-                    "Pointer moved to a negative address at line {}, character {}",
-                    pos.0, pos.1
-                )
-            }
-            Self::TooLargeAddress(pos) => {
-                write!(
-                    f,
-                    "Pointer moved to a memory address >= 30_000 at line {}, character {}",
-                    pos.0, pos.1
-                )
-            }
-            Self::UnmatchedStart(pos) => {
-                write!(f, "Unmatched [ at line {}, character {}", pos.0, pos.1)
-            }
-            Self::UnmatchedEnd(pos) => {
-                write!(f, "Unmatched ] at line {}, character {}", pos.0, pos.1)
-            }
-            Self::JumpType => write!(f, "Wrong Jump type"),
-            Self::Stop => write!(f, "Program was requested to stop"),
-        }
-    }
-}
-
-impl From<std::io::Error> for Error {
-    fn from(error: std::io::Error) -> Self {
-        Error::IO(error.kind())
-    }
-}
 
 #[cfg(feature = "repl")]
 impl From<ReadlineError> for Error {
