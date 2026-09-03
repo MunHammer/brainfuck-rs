@@ -196,9 +196,9 @@ impl<T: Jump> State<T> {
     /// If the ptr moves to a cell value greater than `30_000`
     pub fn mvr(&mut self, amount: usize, x: usize, y: usize) -> crate::Result<&mut Self> {
         if let (_, true) = self.ptr.overflowing_add(amount) {
-            return crate::Result::Err(crate::Error::TooLargeAddress((x, y)));
+            return crate::Result::Err(crate::Error::TooLargeAddress(x, y));
         } else if self.ptr + amount > 30_000 {
-            return crate::Result::Err(crate::Error::TooLargeAddress((x, y)));
+            return crate::Result::Err(crate::Error::TooLargeAddress(x, y));
         }
         self.ptr += amount;
         Ok(self)
@@ -208,7 +208,7 @@ impl<T: Jump> State<T> {
     /// If the ptr moves to a cell value less than 0
     pub fn mvl(&mut self, amount: usize, x: usize, y: usize) -> crate::Result<&mut Self> {
         if let (_, true) = self.ptr.overflowing_sub(amount) {
-            return crate::Result::Err(crate::Error::NegativeAddress((x, y)));
+            return crate::Result::Err(crate::Error::NegativeAddress(x, y));
         }
         self.ptr -= amount;
         Ok(self)
@@ -235,7 +235,7 @@ impl<T: Jump> State<T> {
                 self.pos = self
                     .jumps
                     .end(self.pos)
-                    .ok_or(crate::Error::UnmatchedEnd((x, y)))?;
+                    .ok_or(crate::Error::UnmatchedEnd(x, y))?;
                 self.pos += 1;
             }
         }
@@ -329,7 +329,9 @@ impl Input for FakeInput {
     fn read_key(&mut self) -> crate::Result<Key> {
         match self.0.pop_front() {
             Some(key) => Ok(key),
-            None => Err(crate::Error::IO(std::io::ErrorKind::UnexpectedEof)),
+            None => Err(crate::Error::Io(std::io::Error::from(
+                std::io::ErrorKind::UnexpectedEof,
+            ))),
         }
     }
 }
