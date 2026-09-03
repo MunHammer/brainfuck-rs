@@ -106,11 +106,6 @@ enum Command {
 
 struct BrainfuckReplHelper;
 
-struct BrainfuckReplCompleter;
-struct BrainfuckReplHinter;
-struct BrainfuckReplHighlighter;
-struct BrainfuckReplValidator;
-
 impl BrainfuckReplHelper {
     pub(crate) fn completeness(prog: &str) -> i32 {
         prog.chars().fold(0, |acc, c| {
@@ -126,69 +121,6 @@ impl BrainfuckReplHelper {
 impl Helper for BrainfuckReplHelper {}
 
 impl Completer for BrainfuckReplHelper {
-    type Candidate = String;
-    fn complete(
-        &self,
-        line: &str,
-        pos: usize,
-        ctx: &rustyline::Context<'_>,
-    ) -> Result<(usize, Vec<Self::Candidate>)> {
-        BrainfuckReplCompleter.complete(line, pos, ctx)
-    }
-    fn update(
-        &self,
-        line: &mut rustyline::line_buffer::LineBuffer,
-        start: usize,
-        elected: &str,
-        cl: &mut rustyline::Changeset,
-    ) {
-        BrainfuckReplCompleter.update(line, start, elected, cl);
-    }
-}
-
-impl Hinter for BrainfuckReplHelper {
-    type Hint = String;
-    fn hint(&self, line: &str, pos: usize, ctx: &rustyline::Context<'_>) -> Option<Self::Hint> {
-        BrainfuckReplHinter.hint(line, pos, ctx)
-    }
-}
-
-impl Highlighter for BrainfuckReplHelper {
-    fn highlight<'l>(&self, line: &'l str, pos: usize) -> std::borrow::Cow<'l, str> {
-        BrainfuckReplHighlighter.highlight(line, pos)
-    }
-    fn highlight_prompt<'b, 's: 'b, 'p: 'b>(
-        &'s self,
-        prompt: &'p str,
-        default: bool,
-    ) -> std::borrow::Cow<'b, str> {
-        BrainfuckReplHighlighter.highlight_prompt(prompt, default)
-    }
-    fn highlight_hint<'h>(&self, hint: &'h str) -> std::borrow::Cow<'h, str> {
-        BrainfuckReplHighlighter.highlight_hint(hint)
-    }
-    fn highlight_candidate<'c>(
-        &self,
-        candidate: &'c str, // FIXME should be Completer::Candidate
-        completion: rustyline::CompletionType,
-    ) -> std::borrow::Cow<'c, str> {
-        BrainfuckReplHighlighter.highlight_candidate(candidate, completion)
-    }
-    fn highlight_char(&self, line: &str, pos: usize, kind: rustyline::highlight::CmdKind) -> bool {
-        BrainfuckReplHighlighter.highlight_char(line, pos, kind)
-    }
-}
-
-impl Validator for BrainfuckReplHelper {
-    fn validate(
-        &self,
-        ctx: &mut rustyline::validate::ValidationContext,
-    ) -> Result<rustyline::validate::ValidationResult> {
-        BrainfuckReplValidator.validate(ctx)
-    }
-}
-
-impl Completer for BrainfuckReplCompleter {
     type Candidate = String;
     fn complete(
         &self,
@@ -216,7 +148,7 @@ impl Completer for BrainfuckReplCompleter {
     }
 }
 
-impl Hinter for BrainfuckReplHinter {
+impl Hinter for BrainfuckReplHelper {
     type Hint = String;
     fn hint(&self, line: &str, pos: usize, ctx: &rustyline::Context<'_>) -> Option<Self::Hint> {
         let completion = BrainfuckReplHelper.complete(line, pos, ctx).unwrap();
@@ -229,7 +161,7 @@ impl Hinter for BrainfuckReplHinter {
     }
 }
 
-impl Highlighter for BrainfuckReplHighlighter {
+impl Highlighter for BrainfuckReplHelper {
     fn highlight<'l>(&self, line: &'l str, pos: usize) -> std::borrow::Cow<'l, str> {
         if [
             "show c", "show w", "reset", "clear", "quit", "exit", ":q", "help",
@@ -278,7 +210,7 @@ impl Highlighter for BrainfuckReplHighlighter {
     }
 }
 
-impl Validator for BrainfuckReplValidator {
+impl Validator for BrainfuckReplHelper {
     fn validate(
         &self,
         ctx: &mut rustyline::validate::ValidationContext,
