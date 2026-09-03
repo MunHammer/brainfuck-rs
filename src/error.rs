@@ -116,6 +116,11 @@ mod tests {
         crate::Error::Stop,
         ReadlineError::Signal(rustyline::error::Signal::Resize)
     )]
+    #[cfg(unix)]
+    #[case::signal(
+        crate::Error::Stop,
+        ReadlineError::Signal(rustyline::error::Signal::Interrupt)
+    )]
     fn from_rustyline(#[case] expected: crate::Error, #[case] error: ReadlineError) {
         assert_eq!(
             format!("{expected:#?}"),
