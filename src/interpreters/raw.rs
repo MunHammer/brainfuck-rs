@@ -45,7 +45,7 @@ impl SourceProgram {
         mut input: impl Input,
         mut output: impl Write,
     ) -> crate::Result<()> {
-        let mut state = State::from_string(self.0.clone());
+        let mut state = State::from_string(&self.0);
         let chars: Vec<char> = self.0.chars().collect();
         let mut err_pos: (usize, usize) = (0, 0);
         let mut c: char;
