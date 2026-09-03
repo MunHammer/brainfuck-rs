@@ -52,7 +52,7 @@ pub enum Error {
     #[error("wrong type of Jump was used")]
     JumpType,
 }
-/// A wrapper for Result<T, [`Error`]>
+/// A wrapper for Result<T, [`enum@Error`]>
 pub type Result<T> = std::result::Result<T, Error>;
 
 #[cfg(feature = "repl")]
