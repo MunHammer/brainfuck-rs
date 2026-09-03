@@ -24,7 +24,7 @@ use rustyline::{
     Editor, Helper, Result,
     completion::Completer,
     highlight::Highlighter,
-    hint::Hinter,
+    hint::{Hinter, HistoryHinter},
     history::{DefaultHistory, SearchDirection, SearchResult},
     validate::Validator,
 };
@@ -219,13 +219,13 @@ impl Completer for BrainfuckReplCompleter {
 impl Hinter for BrainfuckReplHinter {
     type Hint = String;
     fn hint(&self, line: &str, pos: usize, ctx: &rustyline::Context<'_>) -> Option<Self::Hint> {
-        BrainfuckReplCompleter
-            .complete(line, pos, ctx)
-            .unwrap()
-            .1
-            .get(0)
-            .cloned()
-        // HistoryHinter::new().hint(line, pos, ctx)
+        let completion = BrainfuckReplHelper.complete(line, pos, ctx).unwrap();
+        let hint = completion.1.get(0);
+        if let None = hint {
+            HistoryHinter::new().hint(line, pos, ctx)
+        } else {
+            hint.cloned()
+        }
     }
 }
 
