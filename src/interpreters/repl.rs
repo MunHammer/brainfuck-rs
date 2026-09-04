@@ -19,18 +19,34 @@ along with brainfuck-rs.  If not, see <https://www.gnu.org/licenses/>.
 see COPYING for the full license
 */
 #![cfg(feature = "repl")]
+use std::{fs::File, io};
+
 use crate::interpreters::State;
 use rustyline::{
-    Editor, Helper, Result,
+    Editor, Helper,
     completion::Completer,
+    error::ReadlineError,
     highlight::Highlighter,
     hint::{Hinter, HistoryHinter},
     history::{DefaultHistory, SearchDirection, SearchResult},
     validate::Validator,
 };
-pub fn repl() -> Result<()> {
+pub fn repl() -> crate::Result<()> {
     let mut rl: Editor<BrainfuckReplHelper, DefaultHistory> = Editor::new()?;
     rl.set_helper(Some(BrainfuckReplHelper));
+    let project_dirs = directories::ProjectDirs::from("com.munhammer", "", "brainfuck-rs").unwrap();
+    let history_file = project_dirs.data_dir().join("repl_history");
+    match rl.load_history(&history_file) {
+        Ok(_) => (),
+        Err(ReadlineError::Io(err)) => match err.kind() {
+            io::ErrorKind::NotFound => {
+                std::fs::create_dir(project_dirs.data_dir())?;
+                File::create(&history_file)?;
+            }
+            err => return Err(crate::Error::from(io::Error::from(err))),
+        },
+        err => err?,
+    };
     let mut state = State::new();
     println!(
         "brainfuck-rs  Copyright (C) 2026  Mun_Hammer\nThis program comes with ABSOLUTELY NO WARRANTY; for details type `show w'.\nThis is free software, and you are welcome to redistribute it\nunder certain conditions; type `show c' for details."
@@ -68,6 +84,7 @@ pub fn repl() -> Result<()> {
             }
         }
     }
+    rl.save_history(&history_file)?;
     Ok(())
 }
 
@@ -127,7 +144,7 @@ impl Completer for BrainfuckReplHelper {
         line: &str,
         pos: usize,
         ctx: &rustyline::Context<'_>,
-    ) -> Result<(usize, Vec<Self::Candidate>)> {
+    ) -> rustyline::Result<(usize, Vec<Self::Candidate>)> {
         let mut candidates = Vec::new();
         let completeness = BrainfuckReplHelper::completeness(line);
         if completeness == 0 {
@@ -214,7 +231,7 @@ impl Validator for BrainfuckReplHelper {
     fn validate(
         &self,
         ctx: &mut rustyline::validate::ValidationContext,
-    ) -> Result<rustyline::validate::ValidationResult> {
+    ) -> rustyline::Result<rustyline::validate::ValidationResult> {
         let completeness = BrainfuckReplHelper::completeness(ctx.input());
         if completeness > 0 {
             Ok(rustyline::validate::ValidationResult::Incomplete)
