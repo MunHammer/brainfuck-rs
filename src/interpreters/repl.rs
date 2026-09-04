@@ -54,35 +54,27 @@ pub fn repl() -> crate::Result<()> {
 
     println!("\nEnter \"Help\" for help");
     loop {
-        let readline = rl.readline(">>> ");
-        match readline {
-            Ok(line) => {
-                match parse_command(&line) {
-                    None => (),
-                    Some(command) => match command {
-                        Command::ShowC => {
-                            println!("Please refer to https://github.com/MunHammer/brainfuck-rs/6")
-                        }
-                        Command::ShowW => println!(
-                            "This program is distributed in the hope that it will be useful,\nbut WITHOUT ANY WARRANTY; without even the implied warranty of\nMERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\nGNU General Public License for more details."
-                        ),
-                        Command::Reset => {
-                            state.reset();
-                            println!("The state has been reset")
-                        }
-                        Command::Help => println!(
-                            "Commands:\nshow c - might show copyright information (i don't know)\nshow w - shows warranty\nreset - resets the state\nhelp - shows this message\nquit - quits the program"
-                        ),
-                        Command::Quit => break,
-                    },
+        let readline = rl.readline(">>> ")?;
+        match parse_command(&readline) {
+            None => (),
+            Some(command) => match command {
+                Command::ShowC => {
+                    println!("Please refer to https://github.com/MunHammer/brainfuck-rs/6")
                 }
-                // TODO: main repl logic
-            }
-            Err(error) => {
-                eprintln!("error: {error:#?}");
-                break;
-            }
+                Command::ShowW => println!(
+                    "This program is distributed in the hope that it will be useful,\nbut WITHOUT ANY WARRANTY; without even the implied warranty of\nMERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\nGNU General Public License for more details."
+                ),
+                Command::Reset => {
+                    state.reset();
+                    println!("The state has been reset")
+                }
+                Command::Help => println!(
+                    "Commands:\nshow c - might show copyright information (i don't know)\nshow w - shows warranty\nreset - resets the state\nhelp - shows this message\nquit - quits the program"
+                ),
+                Command::Quit => break,
+            },
         }
+        // TODO: main repl logic
     }
     rl.save_history(&history_file)?;
     Ok(())
