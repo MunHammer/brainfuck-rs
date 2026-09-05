@@ -19,7 +19,7 @@ along with brainfuck-rs.  If not, see <https://www.gnu.org/licenses/>.
 see COPYING for the full license
 */
 //! The file for the function that interprets the program from source
-use super::objects::State;
+use super::objects::{Jump, State};
 use crate::{
     compiler::SourceProgram,
     interpreters::objects::{Input, TermInput},
@@ -33,19 +33,32 @@ impl SourceProgram {
     /// `<`
     #[cfg_attr(coverage_nightly, coverage(off))]
     pub fn interpret(&self) -> crate::Result<()> {
-        self.interpret_inner(TermInput, stdout())
+        self.interpret_inner(TermInput, stdout(), &mut State::new())
+    }
+    /// Interprets the program's source with a provided state
+    /// # Errors
+    /// Returns an error if:
+    /// The pointer moves out of bounds
+    /// `<`
+    pub fn interpret_with_state(&self, state: &mut State<impl Jump>) -> crate::Result<()> {
+        self.interpret_inner(TermInput, stdout(), state)
     }
     /// Interprets the program's source
     /// # Errors
     /// Returns an error if:
     /// The pointer moves out of bounds
     /// `<`
-    pub(crate) fn interpret_inner(
+    pub(crate) fn interpret_inner<I, W, J>(
         &self,
-        mut input: impl Input,
-        mut output: impl Write,
-    ) -> crate::Result<()> {
-        let mut state = State::from_string(&self.0);
+        mut input: I,
+        mut output: W,
+        state: &mut State<J>,
+    ) -> crate::Result<()>
+    where
+        I: Input,
+        W: Write,
+        J: Jump,
+    {
         let chars: Vec<char> = self.0.chars().collect();
         let mut err_pos: (usize, usize) = (0, 0);
         let mut c: char;
@@ -112,7 +125,9 @@ mod tests {
         let program = SourceProgram::new(String::from(program));
         let input = FakeInput(input.into());
         let mut output = FakeOutput(Vec::new());
-        program.interpret_inner(input, &mut output).unwrap();
+        program
+            .interpret_inner(input, &mut output, &mut State::new())
+            .unwrap();
         assert_eq!(output.0, expected_output);
     }
 }
