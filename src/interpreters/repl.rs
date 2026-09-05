@@ -224,13 +224,21 @@ impl Validator for BrainfuckReplHelper {
         &self,
         ctx: &mut rustyline::validate::ValidationContext,
     ) -> rustyline::Result<rustyline::validate::ValidationResult> {
-        let completeness = BrainfuckReplHelper::completeness(ctx.input());
-        if completeness > 0 {
+        let mut depth: i32 = 0;
+        for c in ctx.input().chars() {
+            match c {
+                '[' => depth += 1,
+                ']' => depth -= 1,
+                _ => (),
+            }
+            if depth < 0 {
+                return Ok(rustyline::validate::ValidationResult::Invalid(Some(
+                    String::from("Unmatched ] character"),
+                )));
+            }
+        }
+        if depth > 0 {
             Ok(rustyline::validate::ValidationResult::Incomplete)
-        } else if completeness < 0 {
-            Ok(rustyline::validate::ValidationResult::Invalid(Some(
-                String::from("Unmatched ] character"),
-            )))
         } else {
             Ok(rustyline::validate::ValidationResult::Valid(None))
         }
